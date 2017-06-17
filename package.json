@@ -1,0 +1,45 @@
+{
+  "name": "audio-director",
+  "version": "0.0.1",
+  "description": "Manage audio playback",
+  "main": "dist/audio-director.js",
+  "scripts": {
+    "test": "./node_modules/tape/bin/tape test/*.js",
+    "watch": "watchify index.js -o dist/audio-director.js",
+    "watch:example": "watchify example/main.js -o example/bundle.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miguelmota/audio-director"
+  },
+  "keywords": [
+    "audio",
+    "music",
+    "manage",
+    "player"
+  ],
+  "author": {
+    "name": "Miguel Mota",
+    "email": "hello@miguelmota.com",
+    "url": "http://www.miguelmota.com/"
+  },
+  "license": {
+    "type": "MIT",
+    "url": "https://github.com/miguelmota/audio-director/blob/master/LICENSE.md"
+  },
+  "bugs": {
+    "url": "https://github.com/miguelmota/audio-director/issues"
+  },
+  "homepage": "https://github.com/miguelmota/audio-director",
+  "devDependencies": {
+    "tape": "^3.0.3",
+    "watchify": "^3.9.0"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "arraybuffer-to-audiobuffer": "0.0.1",
+    "d3-scale": "^1.0.6"
+  }
+}
