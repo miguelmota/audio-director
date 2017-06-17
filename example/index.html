@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=yes">
+  <title>audio-director.js</title>
+</head>
+<body>
+
+  <div>
+    <input type="text" id="urlInput" placeholder="url" />
+    <button id="urlInputSubmit">Set</button>
+  </div>
+
+  <div>
+    <button id="stopAudio" disabled>Stop audio</button>
+    <button id="pauseAudio" disabled>Pause audio</button>
+    <button id="playAudio" disabled>Play/Resume audio</button>
+    <button id="replayAudio" disabled>Replay audio</button>
+
+    Playback rate <input id="playbackRateSlider" type="range" min="0" value="1" max="2" step="0.1" />
+
+    Volume <input id="volumeSlider" type="range" min="0" value="1" max="1" step="0.1" />
+  </div>
+
+  <div>
+    <ul id="log"></ul>
+    <ul id="audioLog"></ul>
+  </div>
+
+  <script src="bundle.js"></script>
+</body>
+</html>
