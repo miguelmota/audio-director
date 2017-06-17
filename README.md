@@ -2,13 +2,13 @@
 
 > Mange audio playback
 
-## Install
+# Install
 
 ```bash
 npm install audio-director
 ```
 
-## Usage
+# Usage
 
 ```
 const AudioDirector = require('audio-director')
@@ -44,7 +44,7 @@ identifiers (found under Player.EventTypes object)
   DEQUE - when an audio source is removed from queue
 ```
 
-## TODO
+# TODO
 
 Better documentation
 
