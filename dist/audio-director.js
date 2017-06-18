@@ -1,12 +1,33 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = {
-  Player: require('./lib/Player')
+  Player: require('./lib/player'),
+  YoutubePlayer: require('./lib/youtubePlayer')
 }
 
-},{"./lib/Player":2}],2:[function(require,module,exports){
+},{"./lib/player":3,"./lib/youtubePlayer":4}],2:[function(require,module,exports){
+module.exports = {
+  LOG: 'log',
+  ERROR: 'error',
+  READY: 'ready',
+  PLAY: 'play',
+  REPLAY: 'replay',
+  PAUSE: 'pause',
+  STOP: 'pause',
+  NEXT: 'next',
+  PREVIOUS: 'previous',
+  PLAYBACK_RATE: 'playbackRate',
+  VOLUME: 'volume',
+  ENQUEUE: 'enqueue',
+  DEQUE: 'deque',
+  STATE_CHANGE: 'stateChange'
+}
+
+},{}],3:[function(require,module,exports){
 const EventEmitter = require('events')
 const arrayBufferToAudioBuffer = require('arraybuffer-to-audiobuffer');
 const {scaleLinear} = require('d3-scale')
+
+const PlayerEventTypes = require('./constants/PlayerEventTypes')
 
 const toString = Object.prototype.toString;
 
@@ -17,6 +38,7 @@ class Player extends EventEmitter {
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
     this._queue = []
+    this._currentQueueIndex = 0
     this._currentSource = null
     this._currentBuffer = null
     this._context = new AudioContext()
@@ -32,6 +54,9 @@ class Player extends EventEmitter {
     .domain([0, 1])
     .range([0, 1])
     .clamp(true)
+
+    this._log('Player ready');
+    this.emit(PlayerEventTypes.READY);
   }
 
   _log(type, message) {
@@ -41,7 +66,7 @@ class Player extends EventEmitter {
     }
 
     setTimeout(() => {
-      this.emit(Player.EventTypes.LOG, message);
+      this.emit(PlayerEventTypes.LOG, message);
     }, 0);
 
     if (this._debug) {
@@ -52,6 +77,7 @@ class Player extends EventEmitter {
   emptyQueue() {
     return new Promise((resolve, reject) => {
       this._queue = [];
+      this._currentQueueIndex = 0
       this._audio = null;
       this._currentBuffer = null;
       this._currentSource = null;
@@ -72,7 +98,7 @@ class Player extends EventEmitter {
       const proceed = (audioBuffer) => {
         this._queue.push(audioBuffer);
         this._log('Enqueue audio');
-        this.emit(Player.EventTypes.ENQUEUE);
+        this.emit(PlayerEventTypes.ENQUEUE);
         return resolve(audioBuffer);
       };
 
@@ -96,36 +122,41 @@ class Player extends EventEmitter {
 
   deque() {
     return new Promise((resolve, reject) => {
-      const item = this._queue.shift();
+      const item = this._queue[this._currentQueueIndex]
 
       if (item) {
         this._log('Deque audio');
-        this.emit(Player.EventTypes.DEQUE);
+        this.emit(PlayerEventTypes.DEQUE);
         return resolve(item);
       }
 
-      return reject();
+      return reject(new Error('no item to play'));
     });
   }
 
   play() {
     return new Promise((resolve, reject) => {
+      // if paused then resume
       if (this._context.state === 'suspended') {
         this._context.resume();
 
         this._log('Play audio');
-        this.emit(Player.EventTypes.PLAY);
+        this.emit(PlayerEventTypes.PLAY);
         resolve();
+
+      // if paused then resume
       } else if (this._audio && this._audio.paused) {
         this._log('Play audio');
-        this.emit(Player.EventTypes.PLAY);
+        this.emit(PlayerEventTypes.PLAY);
         this._audio.play();
         resolve();
+
+      // if paused then resume
       } else {
         return this.deque()
         .then(audioBuffer => {
           this._log('Play audio');
-          this.emit(Player.EventTypes.PLAY);
+          this.emit(PlayerEventTypes.PLAY);
           if (typeof audioBuffer === 'string') {
             return this.playUrl(audioBuffer);
           }
@@ -157,7 +188,7 @@ class Player extends EventEmitter {
         }
 
         this._log('Stop audio');
-        this.emit(Player.EventTypes.STOP);
+        this.emit(PlayerEventTypes.STOP);
     });
   }
 
@@ -172,7 +203,7 @@ class Player extends EventEmitter {
         }
 
         this._log('Pause audio');
-        this.emit(Player.EventTypes.PAUSE);
+        this.emit(PlayerEventTypes.PAUSE);
     });
   }
 
@@ -180,7 +211,7 @@ class Player extends EventEmitter {
     return new Promise((resolve, reject) => {
         if (this._currentBuffer) {
           this._log('Replay audio');
-          this.emit(Player.EventTypes.REPLAY);
+          this.emit(PlayerEventTypes.REPLAY);
 
           if (this._context.state === 'suspended') {
             this._context.resume();
@@ -193,7 +224,7 @@ class Player extends EventEmitter {
           return this.playAudioBuffer(this._currentBuffer);
         } else if (this._audio) {
           this._log('Replay audio');
-          this.emit(Player.EventTypes.REPLAY);
+          this.emit(PlayerEventTypes.REPLAY);
           return this.playUrl(this._audio.src);
         } else {
           const error = new Error('No audio source loaded.');
@@ -219,7 +250,7 @@ class Player extends EventEmitter {
 
       audio.onended = () => {
         this._log('Audio ended');
-        this.emit(Player.EventTypes.ENDED);
+        this.emit(PlayerEventTypes.ENDED);
         resolve();
       };
 
@@ -252,7 +283,7 @@ class Player extends EventEmitter {
 
       source.onended = (event) => {
         this._log('Audio ended');
-        this.emit(Player.EventTypes.ENDED);
+        this.emit(PlayerEventTypes.ENDED);
         resolve();
       };
 
@@ -274,7 +305,7 @@ class Player extends EventEmitter {
 
       audio.onended = (event) => {
         this._log('Audio ended');
-        this.emit(Player.EventTypes.ENDED);
+        this.emit(PlayerEventTypes.ENDED);
         resolve();
       };
 
@@ -287,6 +318,43 @@ class Player extends EventEmitter {
     });
   }
 
+  next() {
+    return new Promise((resolve, reject) => {
+      const item = this._queue[this._currentQueueIndex + 1]
+
+      if (item) {
+        this._currentQueueIndex++
+
+        this._log('Next audio');
+        this.emit(PlayerEventTypes.NEXT);
+
+        this.stop()
+        this._audio = null
+        return resolve(item)
+      }
+
+      return reject(new Error('no item to play'));
+    });
+  }
+
+  previous() {
+    return new Promise((resolve, reject) => {
+      const item = this._queue[this._currentQueueIndex - 1]
+
+      if (item) {
+        this._currentQueueIndex--
+        this._log('Previous audio');
+        this.emit(PlayerEventTypes.PREVIOUS);
+
+        this.stop()
+        this._audio = null
+        return resolve(item)
+      }
+
+      return reject(new Error('no item to play'));
+    });
+  }
+
   setPlaybackRate(rate) {
     return new Promise((resolve, reject) => {
       this._playbackRate = this._playbackRateScale(rate)
@@ -296,7 +364,7 @@ class Player extends EventEmitter {
       }
 
       this._log(`Set playback rate: ${this._playbackRate}`);
-      this.emit(Player.EventTypes.PLAYBACK_RATE, this._playbackRate);
+      this.emit(PlayerEventTypes.PLAYBACK_RATE, this._playbackRate);
 
       resolve(this._playbackRate)
     })
@@ -311,33 +379,304 @@ class Player extends EventEmitter {
       }
 
       this._log(`Set volume: ${this._volume}`);
-      this.emit(Player.EventTypes.VOLUME, this._volume);
+      this.emit(PlayerEventTypes.VOLUME, this._volume);
 
       resolve(this._volume)
     })
   }
 
   static get EventTypes() {
-    return {
-      LOG: 'log',
-      ERROR: 'error',
-      PLAY: 'play',
-      REPLAY: 'replay',
-      PAUSE: 'pause',
-      STOP: 'pause',
-      PLAYBACK_RATE: 'playbackRate',
-      VOLUME: 'volume',
-      ENQUEUE: 'enqueue',
-      DEQUE: 'deque'
-    };
+    return PlayerEventTypes
   }
 }
 
-module.exports = {
-  Player
+module.exports = Player
+
+},{"./constants/PlayerEventTypes":2,"arraybuffer-to-audiobuffer":5,"d3-scale":11,"events":14}],4:[function(require,module,exports){
+const EventEmitter = require('events')
+const qs = require('qs')
+const {scaleLinear} = require('d3-scale')
+
+const PlayerEventTypes = require('./constants/PlayerEventTypes')
+
+class YoutubePlayer extends EventEmitter {
+  constructor() {
+    super()
+
+    this._player = null
+
+    this._playbackRateScale = scaleLinear()
+    .domain([0.75, 2])
+    .range([0.75, 2])
+    .clamp(true)
+
+    this._volume = 100
+    this._volumeScale = scaleLinear()
+    .domain([0, 1])
+    .range([0, 100])
+    .clamp(true)
+
+    this._isReady = false
+
+    if (!window.onYouTubeIframeAPIReady) {
+      const tag = document.createElement('script')
+
+      tag.src = 'https://www.youtube.com/iframe_api'
+
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+    }
+
+    window.onYouTubeIframeAPIReady = () => {
+
+    }
+  }
+
+  _destroyPlayer() {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._player.destroy()
+      }
+
+      if (this._player) {
+        this._playerEl.remove()
+      }
+
+      return resolve()
+    })
+  }
+
+  _setPlayer(props) {
+    if (!props) {
+      props = {}
+    }
+
+    const {videoId, playlistId} = props
+
+    return new Promise((resolve, reject) => {
+      this._destroyPlayer()
+
+      this._playerEl = document.createElement('div')
+      this._playerEl.cssText = 'position:absolute;left:-1000px;bottom:-1000px;visibility:hidden;pointer-events:none'
+      this._playerEl.id = `player_${Math.random()*1e10|0}`
+      document.body.appendChild(this._playerEl)
+
+      this._player = new YT.Player(this._playerEl.id, {
+        height: 1,
+        width: 1,
+        events: {
+          onReady: this._onPlayerReady.bind(this),
+          onStateChange: this._onPlayerStateChange.bind(this)
+        },
+        videoId: videoId,
+        playerVars: {
+          listType: 'playlist',
+          list: playlistId
+        }
+      })
+    })
+  }
+
+  _onPlayerReady(event) {
+    this._isReady = true
+    this._log('Player ready');
+    this.emit(PlayerEventTypes.READY);
+  }
+
+  _onPlayerStateChange(event) {
+    this._log(`Player state change: ${event.data}`);
+    this.emit(PlayerEventTypes.STATE_CHANGE, event.data);
+  }
+
+  _log(type, message) {
+    if (type && !message) {
+      message = type
+      type = 'log'
+    }
+
+    setTimeout(() => {
+      this.emit(PlayerEventTypes.LOG, message)
+    }, 0)
+
+    if (this._debug) {
+      console[type](message)
+    }
+  }
+
+  emptyQueue() {
+    return new Promise((resolve, reject) => {
+      this.stop()
+
+      resolve()
+    })
+  }
+
+  enqueue(url) {
+    return new Promise((resolve, reject) => {
+      const query = qs.parse(url.replace(/.*\?/gi, ''))
+      const videoId = query.v
+      const playlistId = query.list
+
+      if (!videoId) {
+        return reject(new Error('videoId not found'))
+      }
+
+      return this._setPlayer({
+        videoId,
+        playlistId
+      })
+
+      this._log('Enqueue audio');
+      this.emit(PlayerEventTypes.ENQUEUE);
+
+      resolve()
+    })
+  }
+
+  deque() {
+    return new Promise((resolve, reject) => {
+      this.next()
+
+      this._log('Deque audio');
+      this.emit(PlayerEventTypes.DEQUE);
+      resolve()
+    })
+  }
+
+  play() {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._player.playVideo()
+
+        this._log('Play audio');
+        this.emit(PlayerEventTypes.PLAY);
+        resolve()
+      } else {
+        reject(new Error('player not ready'))
+      }
+    })
+  }
+
+  playQueue() {
+    return this.play()
+  }
+
+  playUrl(url) {
+    return this.emptyQueue()
+    .then(() => {
+      return this.enqueue(url)
+    })
+  }
+
+  stop() {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._player.stopVideo()
+      }
+
+      this._log('Stop audio');
+      this.emit(PlayerEventTypes.STOP);
+      resolve()
+    })
+  }
+
+  pause() {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._player.pauseVideo()
+      }
+
+      this._log('Pause audio');
+      this.emit(PlayerEventTypes.PAUSE);
+      resolve()
+    })
+  }
+
+  replay() {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._player.seekTo(0)
+        this.play()
+
+        this._log('Replay audio');
+        this.emit(PlayerEventTypes.REPLAY);
+        resolve()
+      } else {
+        reject(new Error('player not ready'))
+      }
+    })
+  }
+
+  next() {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._player.nextVideo()
+
+        this._log('Next audio');
+        this.emit(PlayerEventTypes.NEXT);
+        resolve()
+      } else {
+        reject(new Error('player not ready'))
+      }
+    })
+  }
+
+  previous() {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._player.previousVideo()
+
+        this._log('Previous audio');
+        this.emit(PlayerEventTypes.PREVIOUS);
+        resolve()
+      } else {
+        reject(new Error('player not ready'))
+      }
+    })
+  }
+
+  setPlaybackRate(rate) {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._playbackRate = this._playbackRateScale(rate)
+
+        this._player.setPlaybackRate(this._playbackRate)
+
+        this._log(`Set playback rate: ${this._playbackRate}`);
+        this.emit(PlayerEventTypes.PLAYBACK_RATE, this._playbackRate);
+
+        resolve()
+      } else {
+        reject(new Error('player not ready'))
+      }
+    })
+  }
+
+  setVolume(volume) {
+    return new Promise((resolve, reject) => {
+      if (this._player) {
+        this._volume = this._volumeScale(volume)
+
+        this._player.setVolume(this._volume)
+
+        this._log(`Set volume: ${this._volume}`);
+        this.emit(PlayerEventTypes.VOLUME, this._volume);
+        resolve()
+      } else {
+        reject(new Error('player not ready'))
+      }
+    })
+  }
+
+  static get EventTypes() {
+    return PlayerEventTypes
+  }
 }
 
-},{"arraybuffer-to-audiobuffer":3,"d3-scale":9,"events":12}],3:[function(require,module,exports){
+module.exports = YoutubePlayer
+
+},{"./constants/PlayerEventTypes":2,"d3-scale":11,"events":14,"qs":16}],5:[function(require,module,exports){
 ;(function(root) {
   'use strict';
 
@@ -373,7 +712,7 @@ module.exports = {
   }
 })(this);
 
-},{}],4:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -964,7 +1303,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // https://d3js.org/d3-collection/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1183,7 +1522,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],6:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // https://d3js.org/d3-color/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1708,7 +2047,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // https://d3js.org/d3-format/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2041,7 +2380,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],8:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.1.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -2588,7 +2927,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":6}],9:[function(require,module,exports){
+},{"d3-color":8}],11:[function(require,module,exports){
 // https://d3js.org/d3-scale/ Version 1.0.6. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format'), require('d3-color')) :
@@ -3515,7 +3854,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":4,"d3-collection":5,"d3-color":6,"d3-format":7,"d3-interpolate":8,"d3-time":11,"d3-time-format":10}],10:[function(require,module,exports){
+},{"d3-array":6,"d3-collection":7,"d3-color":8,"d3-format":9,"d3-interpolate":10,"d3-time":13,"d3-time-format":12}],12:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ Version 2.0.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -4105,7 +4444,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":11}],11:[function(require,module,exports){
+},{"d3-time":13}],13:[function(require,module,exports){
 // https://d3js.org/d3-time/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -4491,7 +4830,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4794,5 +5133,600 @@ function isObject(arg) {
 function isUndefined(arg) {
   return arg === void 0;
 }
+
+},{}],15:[function(require,module,exports){
+'use strict';
+
+var replace = String.prototype.replace;
+var percentTwenties = /%20/g;
+
+module.exports = {
+    'default': 'RFC3986',
+    formatters: {
+        RFC1738: function (value) {
+            return replace.call(value, percentTwenties, '+');
+        },
+        RFC3986: function (value) {
+            return value;
+        }
+    },
+    RFC1738: 'RFC1738',
+    RFC3986: 'RFC3986'
+};
+
+},{}],16:[function(require,module,exports){
+'use strict';
+
+var stringify = require('./stringify');
+var parse = require('./parse');
+var formats = require('./formats');
+
+module.exports = {
+    formats: formats,
+    parse: parse,
+    stringify: stringify
+};
+
+},{"./formats":15,"./parse":17,"./stringify":18}],17:[function(require,module,exports){
+'use strict';
+
+var utils = require('./utils');
+
+var has = Object.prototype.hasOwnProperty;
+
+var defaults = {
+    allowDots: false,
+    allowPrototypes: false,
+    arrayLimit: 20,
+    decoder: utils.decode,
+    delimiter: '&',
+    depth: 5,
+    parameterLimit: 1000,
+    plainObjects: false,
+    strictNullHandling: false
+};
+
+var parseValues = function parseQueryStringValues(str, options) {
+    var obj = {};
+    var parts = str.split(options.delimiter, options.parameterLimit === Infinity ? undefined : options.parameterLimit);
+
+    for (var i = 0; i < parts.length; ++i) {
+        var part = parts[i];
+        var pos = part.indexOf(']=') === -1 ? part.indexOf('=') : part.indexOf(']=') + 1;
+
+        var key, val;
+        if (pos === -1) {
+            key = options.decoder(part);
+            val = options.strictNullHandling ? null : '';
+        } else {
+            key = options.decoder(part.slice(0, pos));
+            val = options.decoder(part.slice(pos + 1));
+        }
+        if (has.call(obj, key)) {
+            obj[key] = [].concat(obj[key]).concat(val);
+        } else {
+            obj[key] = val;
+        }
+    }
+
+    return obj;
+};
+
+var parseObject = function parseObjectRecursive(chain, val, options) {
+    if (!chain.length) {
+        return val;
+    }
+
+    var root = chain.shift();
+
+    var obj;
+    if (root === '[]') {
+        obj = [];
+        obj = obj.concat(parseObject(chain, val, options));
+    } else {
+        obj = options.plainObjects ? Object.create(null) : {};
+        var cleanRoot = root.charAt(0) === '[' && root.charAt(root.length - 1) === ']' ? root.slice(1, -1) : root;
+        var index = parseInt(cleanRoot, 10);
+        if (
+            !isNaN(index) &&
+            root !== cleanRoot &&
+            String(index) === cleanRoot &&
+            index >= 0 &&
+            (options.parseArrays && index <= options.arrayLimit)
+        ) {
+            obj = [];
+            obj[index] = parseObject(chain, val, options);
+        } else {
+            obj[cleanRoot] = parseObject(chain, val, options);
+        }
+    }
+
+    return obj;
+};
+
+var parseKeys = function parseQueryStringKeys(givenKey, val, options) {
+    if (!givenKey) {
+        return;
+    }
+
+    // Transform dot notation to bracket notation
+    var key = options.allowDots ? givenKey.replace(/\.([^.[]+)/g, '[$1]') : givenKey;
+
+    // The regex chunks
+
+    var brackets = /(\[[^[\]]*])/;
+    var child = /(\[[^[\]]*])/g;
+
+    // Get the parent
+
+    var segment = brackets.exec(key);
+    var parent = segment ? key.slice(0, segment.index) : key;
+
+    // Stash the parent if it exists
+
+    var keys = [];
+    if (parent) {
+        // If we aren't using plain objects, optionally prefix keys
+        // that would overwrite object prototype properties
+        if (!options.plainObjects && has.call(Object.prototype, parent)) {
+            if (!options.allowPrototypes) {
+                return;
+            }
+        }
+
+        keys.push(parent);
+    }
+
+    // Loop through children appending to the array until we hit depth
+
+    var i = 0;
+    while ((segment = child.exec(key)) !== null && i < options.depth) {
+        i += 1;
+        if (!options.plainObjects && has.call(Object.prototype, segment[1].slice(1, -1))) {
+            if (!options.allowPrototypes) {
+                return;
+            }
+        }
+        keys.push(segment[1]);
+    }
+
+    // If there's a remainder, just add whatever is left
+
+    if (segment) {
+        keys.push('[' + key.slice(segment.index) + ']');
+    }
+
+    return parseObject(keys, val, options);
+};
+
+module.exports = function (str, opts) {
+    var options = opts || {};
+
+    if (options.decoder !== null && options.decoder !== undefined && typeof options.decoder !== 'function') {
+        throw new TypeError('Decoder has to be a function.');
+    }
+
+    options.delimiter = typeof options.delimiter === 'string' || utils.isRegExp(options.delimiter) ? options.delimiter : defaults.delimiter;
+    options.depth = typeof options.depth === 'number' ? options.depth : defaults.depth;
+    options.arrayLimit = typeof options.arrayLimit === 'number' ? options.arrayLimit : defaults.arrayLimit;
+    options.parseArrays = options.parseArrays !== false;
+    options.decoder = typeof options.decoder === 'function' ? options.decoder : defaults.decoder;
+    options.allowDots = typeof options.allowDots === 'boolean' ? options.allowDots : defaults.allowDots;
+    options.plainObjects = typeof options.plainObjects === 'boolean' ? options.plainObjects : defaults.plainObjects;
+    options.allowPrototypes = typeof options.allowPrototypes === 'boolean' ? options.allowPrototypes : defaults.allowPrototypes;
+    options.parameterLimit = typeof options.parameterLimit === 'number' ? options.parameterLimit : defaults.parameterLimit;
+    options.strictNullHandling = typeof options.strictNullHandling === 'boolean' ? options.strictNullHandling : defaults.strictNullHandling;
+
+    if (str === '' || str === null || typeof str === 'undefined') {
+        return options.plainObjects ? Object.create(null) : {};
+    }
+
+    var tempObj = typeof str === 'string' ? parseValues(str, options) : str;
+    var obj = options.plainObjects ? Object.create(null) : {};
+
+    // Iterate over the keys and setup the new object
+
+    var keys = Object.keys(tempObj);
+    for (var i = 0; i < keys.length; ++i) {
+        var key = keys[i];
+        var newObj = parseKeys(key, tempObj[key], options);
+        obj = utils.merge(obj, newObj, options);
+    }
+
+    return utils.compact(obj);
+};
+
+},{"./utils":19}],18:[function(require,module,exports){
+'use strict';
+
+var utils = require('./utils');
+var formats = require('./formats');
+
+var arrayPrefixGenerators = {
+    brackets: function brackets(prefix) { // eslint-disable-line func-name-matching
+        return prefix + '[]';
+    },
+    indices: function indices(prefix, key) { // eslint-disable-line func-name-matching
+        return prefix + '[' + key + ']';
+    },
+    repeat: function repeat(prefix) { // eslint-disable-line func-name-matching
+        return prefix;
+    }
+};
+
+var toISO = Date.prototype.toISOString;
+
+var defaults = {
+    delimiter: '&',
+    encode: true,
+    encoder: utils.encode,
+    encodeValuesOnly: false,
+    serializeDate: function serializeDate(date) { // eslint-disable-line func-name-matching
+        return toISO.call(date);
+    },
+    skipNulls: false,
+    strictNullHandling: false
+};
+
+var stringify = function stringify( // eslint-disable-line func-name-matching
+    object,
+    prefix,
+    generateArrayPrefix,
+    strictNullHandling,
+    skipNulls,
+    encoder,
+    filter,
+    sort,
+    allowDots,
+    serializeDate,
+    formatter,
+    encodeValuesOnly
+) {
+    var obj = object;
+    if (typeof filter === 'function') {
+        obj = filter(prefix, obj);
+    } else if (obj instanceof Date) {
+        obj = serializeDate(obj);
+    } else if (obj === null) {
+        if (strictNullHandling) {
+            return encoder && !encodeValuesOnly ? encoder(prefix) : prefix;
+        }
+
+        obj = '';
+    }
+
+    if (typeof obj === 'string' || typeof obj === 'number' || typeof obj === 'boolean' || utils.isBuffer(obj)) {
+        if (encoder) {
+            var keyValue = encodeValuesOnly ? prefix : encoder(prefix);
+            return [formatter(keyValue) + '=' + formatter(encoder(obj))];
+        }
+        return [formatter(prefix) + '=' + formatter(String(obj))];
+    }
+
+    var values = [];
+
+    if (typeof obj === 'undefined') {
+        return values;
+    }
+
+    var objKeys;
+    if (Array.isArray(filter)) {
+        objKeys = filter;
+    } else {
+        var keys = Object.keys(obj);
+        objKeys = sort ? keys.sort(sort) : keys;
+    }
+
+    for (var i = 0; i < objKeys.length; ++i) {
+        var key = objKeys[i];
+
+        if (skipNulls && obj[key] === null) {
+            continue;
+        }
+
+        if (Array.isArray(obj)) {
+            values = values.concat(stringify(
+                obj[key],
+                generateArrayPrefix(prefix, key),
+                generateArrayPrefix,
+                strictNullHandling,
+                skipNulls,
+                encoder,
+                filter,
+                sort,
+                allowDots,
+                serializeDate,
+                formatter,
+                encodeValuesOnly
+            ));
+        } else {
+            values = values.concat(stringify(
+                obj[key],
+                prefix + (allowDots ? '.' + key : '[' + key + ']'),
+                generateArrayPrefix,
+                strictNullHandling,
+                skipNulls,
+                encoder,
+                filter,
+                sort,
+                allowDots,
+                serializeDate,
+                formatter,
+                encodeValuesOnly
+            ));
+        }
+    }
+
+    return values;
+};
+
+module.exports = function (object, opts) {
+    var obj = object;
+    var options = opts || {};
+
+    if (options.encoder !== null && options.encoder !== undefined && typeof options.encoder !== 'function') {
+        throw new TypeError('Encoder has to be a function.');
+    }
+
+    var delimiter = typeof options.delimiter === 'undefined' ? defaults.delimiter : options.delimiter;
+    var strictNullHandling = typeof options.strictNullHandling === 'boolean' ? options.strictNullHandling : defaults.strictNullHandling;
+    var skipNulls = typeof options.skipNulls === 'boolean' ? options.skipNulls : defaults.skipNulls;
+    var encode = typeof options.encode === 'boolean' ? options.encode : defaults.encode;
+    var encoder = typeof options.encoder === 'function' ? options.encoder : defaults.encoder;
+    var sort = typeof options.sort === 'function' ? options.sort : null;
+    var allowDots = typeof options.allowDots === 'undefined' ? false : options.allowDots;
+    var serializeDate = typeof options.serializeDate === 'function' ? options.serializeDate : defaults.serializeDate;
+    var encodeValuesOnly = typeof options.encodeValuesOnly === 'boolean' ? options.encodeValuesOnly : defaults.encodeValuesOnly;
+    if (typeof options.format === 'undefined') {
+        options.format = formats.default;
+    } else if (!Object.prototype.hasOwnProperty.call(formats.formatters, options.format)) {
+        throw new TypeError('Unknown format option provided.');
+    }
+    var formatter = formats.formatters[options.format];
+    var objKeys;
+    var filter;
+
+    if (typeof options.filter === 'function') {
+        filter = options.filter;
+        obj = filter('', obj);
+    } else if (Array.isArray(options.filter)) {
+        filter = options.filter;
+        objKeys = filter;
+    }
+
+    var keys = [];
+
+    if (typeof obj !== 'object' || obj === null) {
+        return '';
+    }
+
+    var arrayFormat;
+    if (options.arrayFormat in arrayPrefixGenerators) {
+        arrayFormat = options.arrayFormat;
+    } else if ('indices' in options) {
+        arrayFormat = options.indices ? 'indices' : 'repeat';
+    } else {
+        arrayFormat = 'indices';
+    }
+
+    var generateArrayPrefix = arrayPrefixGenerators[arrayFormat];
+
+    if (!objKeys) {
+        objKeys = Object.keys(obj);
+    }
+
+    if (sort) {
+        objKeys.sort(sort);
+    }
+
+    for (var i = 0; i < objKeys.length; ++i) {
+        var key = objKeys[i];
+
+        if (skipNulls && obj[key] === null) {
+            continue;
+        }
+
+        keys = keys.concat(stringify(
+            obj[key],
+            key,
+            generateArrayPrefix,
+            strictNullHandling,
+            skipNulls,
+            encode ? encoder : null,
+            filter,
+            sort,
+            allowDots,
+            serializeDate,
+            formatter,
+            encodeValuesOnly
+        ));
+    }
+
+    return keys.join(delimiter);
+};
+
+},{"./formats":15,"./utils":19}],19:[function(require,module,exports){
+'use strict';
+
+var has = Object.prototype.hasOwnProperty;
+
+var hexTable = (function () {
+    var array = [];
+    for (var i = 0; i < 256; ++i) {
+        array.push('%' + ((i < 16 ? '0' : '') + i.toString(16)).toUpperCase());
+    }
+
+    return array;
+}());
+
+exports.arrayToObject = function (source, options) {
+    var obj = options && options.plainObjects ? Object.create(null) : {};
+    for (var i = 0; i < source.length; ++i) {
+        if (typeof source[i] !== 'undefined') {
+            obj[i] = source[i];
+        }
+    }
+
+    return obj;
+};
+
+exports.merge = function (target, source, options) {
+    if (!source) {
+        return target;
+    }
+
+    if (typeof source !== 'object') {
+        if (Array.isArray(target)) {
+            target.push(source);
+        } else if (typeof target === 'object') {
+            if (options.plainObjects || options.allowPrototypes || !has.call(Object.prototype, source)) {
+                target[source] = true;
+            }
+        } else {
+            return [target, source];
+        }
+
+        return target;
+    }
+
+    if (typeof target !== 'object') {
+        return [target].concat(source);
+    }
+
+    var mergeTarget = target;
+    if (Array.isArray(target) && !Array.isArray(source)) {
+        mergeTarget = exports.arrayToObject(target, options);
+    }
+
+    if (Array.isArray(target) && Array.isArray(source)) {
+        source.forEach(function (item, i) {
+            if (has.call(target, i)) {
+                if (target[i] && typeof target[i] === 'object') {
+                    target[i] = exports.merge(target[i], item, options);
+                } else {
+                    target.push(item);
+                }
+            } else {
+                target[i] = item;
+            }
+        });
+        return target;
+    }
+
+    return Object.keys(source).reduce(function (acc, key) {
+        var value = source[key];
+
+        if (Object.prototype.hasOwnProperty.call(acc, key)) {
+            acc[key] = exports.merge(acc[key], value, options);
+        } else {
+            acc[key] = value;
+        }
+        return acc;
+    }, mergeTarget);
+};
+
+exports.decode = function (str) {
+    try {
+        return decodeURIComponent(str.replace(/\+/g, ' '));
+    } catch (e) {
+        return str;
+    }
+};
+
+exports.encode = function (str) {
+    // This code was originally written by Brian White (mscdex) for the io.js core querystring library.
+    // It has been adapted here for stricter adherence to RFC 3986
+    if (str.length === 0) {
+        return str;
+    }
+
+    var string = typeof str === 'string' ? str : String(str);
+
+    var out = '';
+    for (var i = 0; i < string.length; ++i) {
+        var c = string.charCodeAt(i);
+
+        if (
+            c === 0x2D || // -
+            c === 0x2E || // .
+            c === 0x5F || // _
+            c === 0x7E || // ~
+            (c >= 0x30 && c <= 0x39) || // 0-9
+            (c >= 0x41 && c <= 0x5A) || // a-z
+            (c >= 0x61 && c <= 0x7A) // A-Z
+        ) {
+            out += string.charAt(i);
+            continue;
+        }
+
+        if (c < 0x80) {
+            out = out + hexTable[c];
+            continue;
+        }
+
+        if (c < 0x800) {
+            out = out + (hexTable[0xC0 | (c >> 6)] + hexTable[0x80 | (c & 0x3F)]);
+            continue;
+        }
+
+        if (c < 0xD800 || c >= 0xE000) {
+            out = out + (hexTable[0xE0 | (c >> 12)] + hexTable[0x80 | ((c >> 6) & 0x3F)] + hexTable[0x80 | (c & 0x3F)]);
+            continue;
+        }
+
+        i += 1;
+        c = 0x10000 + (((c & 0x3FF) << 10) | (string.charCodeAt(i) & 0x3FF));
+        out += hexTable[0xF0 | (c >> 18)] + hexTable[0x80 | ((c >> 12) & 0x3F)] + hexTable[0x80 | ((c >> 6) & 0x3F)] + hexTable[0x80 | (c & 0x3F)]; // eslint-disable-line max-len
+    }
+
+    return out;
+};
+
+exports.compact = function (obj, references) {
+    if (typeof obj !== 'object' || obj === null) {
+        return obj;
+    }
+
+    var refs = references || [];
+    var lookup = refs.indexOf(obj);
+    if (lookup !== -1) {
+        return refs[lookup];
+    }
+
+    refs.push(obj);
+
+    if (Array.isArray(obj)) {
+        var compacted = [];
+
+        for (var i = 0; i < obj.length; ++i) {
+            if (obj[i] && typeof obj[i] === 'object') {
+                compacted.push(exports.compact(obj[i], refs));
+            } else if (typeof obj[i] !== 'undefined') {
+                compacted.push(obj[i]);
+            }
+        }
+
+        return compacted;
+    }
+
+    var keys = Object.keys(obj);
+    keys.forEach(function (key) {
+        obj[key] = exports.compact(obj[key], refs);
+    });
+
+    return obj;
+};
+
+exports.isRegExp = function (obj) {
+    return Object.prototype.toString.call(obj) === '[object RegExp]';
+};
+
+exports.isBuffer = function (obj) {
+    if (obj === null || typeof obj === 'undefined') {
+        return false;
+    }
+
+    return !!(obj.constructor && obj.constructor.isBuffer && obj.constructor.isBuffer(obj));
+};
 
 },{}]},{},[1]);

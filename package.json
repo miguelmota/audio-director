@@ -2,7 +2,7 @@
   "name": "audio-director",
   "version": "0.0.2",
   "description": "Manage audio playback",
-  "main": "dist/audio-director.js",
+  "main": "./index.js",
   "scripts": {
     "test": "./node_modules/tape/bin/tape test/*.js",
     "watch": "watchify index.js -o dist/audio-director.js",
@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "arraybuffer-to-audiobuffer": "0.0.1",
-    "d3-scale": "^1.0.6"
+    "d3-scale": "^1.0.6",
+    "qs": "^6.4.0"
   }
 }

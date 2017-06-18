@@ -1,3 +1,4 @@
 module.exports = {
-  Player: require('./lib/Player')
+  Player: require('./lib/player'),
+  YoutubePlayer: require('./lib/youtubePlayer')
 }

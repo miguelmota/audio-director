@@ -1,8 +1,10 @@
 var AudioDirector = require('../')
 
 var Player = AudioDirector.Player
+var YoutubePlayer = AudioDirector.YoutubePlayer
 var PlayerEventTypes = Player.EventTypes
 var player = new Player()
+//var player = new YoutubePlayer()
 
 window.player = player
 
@@ -37,6 +39,8 @@ const stopAudio = getEl('#stopAudio');
 const pauseAudio = getEl('#pauseAudio');
 const playAudio = getEl('#playAudio');
 const replayAudio = getEl('#replayAudio');
+const next = getEl('#next');
+const previous = getEl('#previous');
 const playbackRateSlider = getEl('#playbackRateSlider');
 const volumeSlider = getEl('#volumeSlider');
 
@@ -115,6 +119,16 @@ replayAudio.addEventListener('click', (event) => {
   player.replay();
 });
 
+next.addEventListener('click', (event) => {
+  player.next()
+  .then(() => player.play())
+});
+
+previous.addEventListener('click', (event) => {
+  player.previous()
+  .then(() => player.play())
+});
+
 urlInput.value = 'https://fanburst.com/stream/f9d20bbd-d94c-42e2-bc32-232fd418e422?client_id=51938de2-772a-449a-984c-35ca26f38078'
 
 var url = urlInput.value
@@ -128,8 +142,6 @@ urlInputSubmit.addEventListener('click', event => {
   })
 })
 
-urlInputSubmit.click()
-
 playbackRateSlider.addEventListener('input', event => {
   const rate = event.target.value
 
@@ -140,4 +152,17 @@ volumeSlider.addEventListener('input', event => {
   const volume = event.target.value
 
   player.setVolume(volume)
+})
+
+var one = 'http://api.soundcloud.com/tracks/325088081/stream?consumer_key=nH8p0jYOkoVEZgJukRlG6w'
+
+var two = 'https://fanburst.com/stream/f9d20bbd-d94c-42e2-bc32-232fd418e422?client_id=51938de2-772a-449a-984c-35ca26f38078'
+
+player.enqueue(one)
+.then(() => player.enqueue(two))
+.then(() => {
+  console.log('queued')
+})
+.catch(error => {
+  console.error(error)
 })
