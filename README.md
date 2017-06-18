@@ -13,8 +13,7 @@ npm install audio-director
 Standard audio player
 
 ```
-const AudioDirector = require('audio-director')
-const Player = AudioDirector.Player
+const {Player} = require('audio-director')
 const player = new Player()
 
 player.enqueue(dataView|typedArray|arrayBuffer|url) -> promise(arraybuffer) - add an audio source to play queue. Converts input to AudioBuffer.
@@ -54,7 +53,7 @@ identifiers (found under Player.EventTypes object)
 YouTube player
 
 ```
-const YoutubePlayer = AudioDirector.YoutubePlayer
+const {YoutubePlayer} = require('audio-director')
 const player = new YoutubePlayer()
 
 const url = 'https://www.youtube.com/watch?v=_5joTyy3CCo&list=RDQMc4l8l2aQrNo'
