@@ -16,7 +16,7 @@ Standard audio player
 const {Player} = require('audio-director')
 const player = new Player()
 
-player.enqueue(dataView|typedArray|arrayBuffer|url) -> promise(arraybuffer) - add an audio source to play queue. Converts input to AudioBuffer.
+player.enqueue(dataView|typedArray|arrayBuffer|url) -> promise(arraybuffer) - add audio source(s) to play queue. Converts input to AudioBuffer.
 player.deque() -> promise() - dequeu an audio source to play
 player.emptyQueue() -> promise() - empty the queue
 

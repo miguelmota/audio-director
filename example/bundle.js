@@ -159,8 +159,7 @@ var one = 'http://api.soundcloud.com/tracks/325088081/stream?consumer_key=nH8p0j
 
 var two = 'https://fanburst.com/stream/f9d20bbd-d94c-42e2-bc32-232fd418e422?client_id=51938de2-772a-449a-984c-35ca26f38078'
 
-player.enqueue(one)
-.then(() => player.enqueue(two))
+player.enqueue([one, two])
 .then(() => {
   console.log('queued')
 })
@@ -257,6 +256,10 @@ class Player extends EventEmitter {
 
   enqueue(item) {
     return new Promise((resolve, reject) => {
+      if (Array.isArray(item)) {
+        return item.forEach(x => this.enqueue(x))
+      }
+
       if (!item) {
         const error = new Error('argument cannot be empty.');
         this._log(error);
@@ -684,6 +687,10 @@ class YoutubePlayer extends EventEmitter {
 
   enqueue(url) {
     return new Promise((resolve, reject) => {
+      if (Array.isArray(url)) {
+        url = url[0]
+      }
+
       const query = qs.parse(url.replace(/.*\?/gi, ''))
       const videoId = query.v
       const playlistId = query.list

@@ -87,6 +87,10 @@ class Player extends EventEmitter {
 
   enqueue(item) {
     return new Promise((resolve, reject) => {
+      if (Array.isArray(item)) {
+        return item.forEach(x => this.enqueue(x))
+      }
+
       if (!item) {
         const error = new Error('argument cannot be empty.');
         this._log(error);
@@ -514,6 +518,10 @@ class YoutubePlayer extends EventEmitter {
 
   enqueue(url) {
     return new Promise((resolve, reject) => {
+      if (Array.isArray(url)) {
+        url = url[0]
+      }
+
       const query = qs.parse(url.replace(/.*\?/gi, ''))
       const videoId = query.v
       const playlistId = query.list
