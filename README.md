@@ -36,6 +36,8 @@ player.setVolume(value 0 - 1) -> promise(volume) - set volume
 
 player.on(identifier, callback)
 
++ more methods that aren't listed here
+
 identifiers (found under Player.EventTypes object)
   LOG - when a debug log occurs
   ERROR - when an error occurs
