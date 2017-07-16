@@ -1,6 +1,6 @@
 {
   "name": "audio-director",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Manage audio playback",
   "main": "./index.js",
   "scripts": {
