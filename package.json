@@ -1,13 +1,14 @@
 {
   "name": "audio-director",
-  "version": "0.0.8",
+  "version": "0.0.10",
   "description": "Manage audio playback",
   "main": "./index.js",
   "scripts": {
     "test": "./node_modules/tape/bin/tape test/*.js",
     "watch": "watchify index.js -o dist/audio-director.js",
     "watch:example": "watchify example/main.js -o example/bundle.js",
-    "build": "browserify index.js -o dist/audio-director.js"
+    "build": "browserify index.js -o dist/audio-director.js",
+    "docs": "jsdoc -R README.md ./lib -c jsdoc.json -r -d docs/"
   },
   "repository": {
     "type": "git",
@@ -34,6 +35,8 @@
   "homepage": "https://github.com/miguelmota/audio-director",
   "devDependencies": {
     "browserify": "^14.4.0",
+    "jsdoc": "^3.5.3",
+    "jsdoc-oblivion": "0.0.9",
     "tape": "^3.0.3",
     "watchify": "^3.9.0"
   },
@@ -43,6 +46,8 @@
   "dependencies": {
     "arraybuffer-to-audiobuffer": "0.0.1",
     "d3-scale": "^1.0.6",
-    "qs": "^6.4.0"
+    "eventemitter2": "^4.1.2",
+    "qs": "^6.4.0",
+    "random-int": "^1.0.0"
   }
 }
