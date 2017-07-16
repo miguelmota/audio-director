@@ -47,6 +47,10 @@ player.enqueue(url)
 
 [Live basic example](https://lab.miguelmota.com/audio-director/example)
 
+# Source
+
+[https://github.com/miguelmota/audio-director](https://github.com/miguelmota/audio-director)
+
 # License
 
 MIT
