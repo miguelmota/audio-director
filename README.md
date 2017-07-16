@@ -16,7 +16,7 @@ npm install audio-director
 
 Standard audio player
 
-```
+```javascript
 const {Player} = require('audio-director')
 const player = new Player()
 
@@ -31,7 +31,7 @@ player.enqueue(dataView|typedArray|arrayBuffer|url)
 
 YouTube player
 
-```
+```javascript
 const {YoutubePlayer} = require('audio-director')
 const player = new YoutubePlayer()
 
