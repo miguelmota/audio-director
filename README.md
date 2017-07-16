@@ -43,6 +43,10 @@ player.enqueue(url)
 
 [Full documentation](https://lab.miguelmota.com/audio-director/docs/YoutubePlayer.html)
 
+# Example
+
+[Live basic example](https://lab.miguelmota.com/audio-director/example)
+
 # License
 
 MIT

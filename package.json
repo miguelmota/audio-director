@@ -7,6 +7,7 @@
     "test": "./node_modules/tape/bin/tape test/*.js",
     "watch": "watchify index.js -o dist/audio-director.js",
     "watch:example": "watchify example/main.js -o example/bundle.js",
+    "build:example": "browserify example/main.js -o example/bundle.js",
     "build": "browserify index.js -o dist/audio-director.js",
     "docs": "jsdoc -R README.md ./lib -c jsdoc.json -r -d docs/"
   },

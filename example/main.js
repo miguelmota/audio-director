@@ -129,7 +129,7 @@ previous.addEventListener('click', (event) => {
   .then(() => player.play())
 });
 
-urlInput.value = 'https://fanburst.com/stream/f9d20bbd-d94c-42e2-bc32-232fd418e422?client_id=51938de2-772a-449a-984c-35ca26f38078'
+urlInput.value = 'https://api.soundcloud.com/tracks/191521939/stream?client_id=a0cbcf3a37c999ef9eae76469ea8db92'
 
 var url = urlInput.value
 
@@ -152,16 +152,4 @@ volumeSlider.addEventListener('input', event => {
   const volume = event.target.value
 
   player.setVolume(volume)
-})
-
-var one = 'http://api.soundcloud.com/tracks/325088081/stream?consumer_key=nH8p0jYOkoVEZgJukRlG6w'
-
-var two = 'https://fanburst.com/stream/f9d20bbd-d94c-42e2-bc32-232fd418e422?client_id=51938de2-772a-449a-984c-35ca26f38078'
-
-player.enqueue([one, two])
-.then(() => {
-  console.log('queued')
-})
-.catch(error => {
-  console.error(error)
 })

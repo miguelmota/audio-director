@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Class: Player</title>
+    <title>JSDoc: Namespace: Player</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Class: Player</h1>
+    <h1 class="page-title">Namespace: Player</h1>
 
     
 
@@ -28,9 +28,7 @@
 
 <header>
     
-        <h2><span class="attribs"><span class="type-signature"></span></span>Player<span class="signature">()</span><span class="type-signature"></span></h2>
-        
-            <div class="class-description">Class reprensenting a Player</div>
+        <h2>Player</h2>
         
     
 </header>
@@ -39,33 +37,10 @@
     <div class="container-overview">
     
         
+            <div class="description">Class reprensenting a Player</div>
+        
 
-    
-    <h2>Constructor</h2>
-    
-
-    
-    <h4 class="name" id="Player"><span class="type-signature"></span>new Player<span class="signature">()</span><span class="type-signature"></span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Create a Player
-</div>
-
-
-
-
-
-
-
-
-
-
-
+        
 
 
 <dl class="details">
@@ -97,7 +72,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line13">line 13</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line8">line 8</a>
     </li></ul></dd>
     
 
@@ -109,27 +84,12 @@
 </dl>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    <h5>Example</h5>
-    
+        
+            <h3>Example</h3>
+            
     <pre class="prettyprint"><code>const player = new Player()</code></pre>
 
-
-
+        
     
     </div>
 
@@ -150,7 +110,7 @@
 
         
             
-<h4 class="name" id=".EventTypes"><span class="type-signature">(static) </span>EventTypes<span class="type-signature"></span></h4>
+<h4 class="name" id=".EventTypes"><span class="type-signature">(static) </span>EventTypes<span class="type-signature"> :Object</span></h4>
 
 
 
@@ -160,6 +120,16 @@
 </div>
 
 
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
 
 
 
@@ -194,7 +164,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line779">line 779</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line821">line 821</a>
     </li></ul></dd>
     
 
@@ -211,7 +181,30 @@
 
     <h5>Example</h5>
     
-    <pre class="prettyprint"><code>const EventTypes = Player.EventTypes</code></pre>
+    <pre class="prettyprint"><code>const EventTypes = Player.EventTypes
+
+{
+      LOG: 'log',
+      ERROR: 'error',
+      READY: 'ready',
+      PLAY: 'play',
+      REPLAY: 'replay',
+      PAUSE: 'pause',
+      STOP: 'pause',
+      NEXT: 'next',
+      PREVIOUS: 'previous',
+      RANDOM: 'random',
+      REPEAT: 'repeat',
+      PLAYBACK_RATE: 'playbackRate',
+      VOLUME: 'volume',
+      MAX_VOLUME: 'maxVolume',
+      MUTED: 'muted',
+      ENDED: 'ended',
+      ENQUEUE: 'enqueue',
+      DEQUE: 'deque',
+      EMPTY_QUEUE: 'emptyQueue',
+      STATE_CHANGE: 'stateChange'
+}</code></pre>
 
 
 
@@ -279,7 +272,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line159">line 159</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line177">line 177</a>
     </li></ul></dd>
     
 
@@ -388,7 +381,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line82">line 82</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line100">line 100</a>
     </li></ul></dd>
     
 
@@ -558,7 +551,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line113">line 113</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line131">line 131</a>
     </li></ul></dd>
     
 
@@ -724,7 +717,7 @@ player.enqueue(url)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line466">line 466</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line484">line 484</a>
     </li></ul></dd>
     
 
@@ -842,7 +835,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line406">line 406</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line424">line 424</a>
     </li></ul></dd>
     
 
@@ -951,7 +944,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line728">line 728</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line746">line 746</a>
     </li></ul></dd>
     
 
@@ -1064,7 +1057,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line768">line 768</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line786">line 786</a>
     </li></ul></dd>
     
 
@@ -1177,7 +1170,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line712">line 712</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line730">line 730</a>
     </li></ul></dd>
     
 
@@ -1290,7 +1283,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line643">line 643</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line661">line 661</a>
     </li></ul></dd>
     
 
@@ -1403,7 +1396,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line677">line 677</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line695">line 695</a>
     </li></ul></dd>
     
 
@@ -1516,7 +1509,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line592">line 592</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line610">line 610</a>
     </li></ul></dd>
     
 
@@ -1629,7 +1622,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line605">line 605</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line623">line 623</a>
     </li></ul></dd>
     
 
@@ -1742,7 +1735,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line494">line 494</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line512">line 512</a>
     </li></ul></dd>
     
 
@@ -1790,6 +1783,175 @@ player.getAudioDataFromUrl()
     <h5>Example</h5>
     
     <pre class="prettyprint"><code>player.next()</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="on"><span class="type-signature"></span>on<span class="signature">(eventName, callback)</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Listen for player events
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>eventName</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">name of even</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>callback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">called when the event occurs</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line25">line 25</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Examples</h5>
+    
+    <pre class="prettyprint"><code>player.on(Player.EventTypes.PLAY, () => {
+
+})</code></pre>
+
+    <pre class="prettyprint"><code>player.on(Player.EventTypes.PLAYBACK_RATE, () => {
+
+})</code></pre>
 
 
 
@@ -1851,7 +2013,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line268">line 268</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line286">line 286</a>
     </li></ul></dd>
     
 
@@ -1960,7 +2122,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line184">line 184</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line202">line 202</a>
     </li></ul></dd>
     
 
@@ -2118,7 +2280,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line372">line 372</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line390">line 390</a>
     </li></ul></dd>
     
 
@@ -2276,7 +2438,7 @@ player.getAudioDataFromUrl()
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line331">line 331</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line349">line 349</a>
     </li></ul></dd>
     
 
@@ -2389,7 +2551,7 @@ player.playBlob(blob)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line226">line 226</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line244">line 244</a>
     </li></ul></dd>
     
 
@@ -2547,7 +2709,7 @@ player.playBlob(blob)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line420">line 420</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line438">line 438</a>
     </li></ul></dd>
     
 
@@ -2658,7 +2820,7 @@ player.playUrl(url)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line532">line 532</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line550">line 550</a>
     </li></ul></dd>
     
 
@@ -2767,7 +2929,7 @@ player.playUrl(url)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line292">line 292</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line310">line 310</a>
     </li></ul></dd>
     
 
@@ -2876,7 +3038,7 @@ player.playUrl(url)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line749">line 749</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line767">line 767</a>
     </li></ul></dd>
     
 
@@ -3036,7 +3198,7 @@ player.seekTo(seconds)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line689">line 689</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line707">line 707</a>
     </li></ul></dd>
     
 
@@ -3145,7 +3307,7 @@ player.seekTo(seconds)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line617">line 617</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line635">line 635</a>
     </li></ul></dd>
     
 
@@ -3303,7 +3465,7 @@ player.seekTo(seconds)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line565">line 565</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line583">line 583</a>
     </li></ul></dd>
     
 
@@ -3461,7 +3623,7 @@ player.seekTo(seconds)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line579">line 579</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line597">line 597</a>
     </li></ul></dd>
     
 
@@ -3619,7 +3781,7 @@ player.seekTo(seconds)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line655">line 655</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line673">line 673</a>
     </li></ul></dd>
     
 
@@ -3728,7 +3890,7 @@ player.seekTo(seconds)</code></pre>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="player.js.html">player.js</a>, <a href="player.js.html#line241">line 241</a>
+        <a href="player.js.html">player.js</a>, <a href="player.js.html#line259">line 259</a>
     </li></ul></dd>
     
 
@@ -3801,7 +3963,7 @@ player.seekTo(seconds)</code></pre>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Sun Jul 16 2017 01:40:16 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Sun Jul 16 2017 02:37:11 GMT-0700 (PDT)
 </footer>
 
 <script> prettyPrint(); </script>

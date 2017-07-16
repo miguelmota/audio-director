@@ -130,7 +130,7 @@ previous.addEventListener('click', (event) => {
   .then(() => player.play())
 });
 
-urlInput.value = 'https://fanburst.com/stream/f9d20bbd-d94c-42e2-bc32-232fd418e422?client_id=51938de2-772a-449a-984c-35ca26f38078'
+urlInput.value = 'https://api.soundcloud.com/tracks/191521939/stream?client_id=a0cbcf3a37c999ef9eae76469ea8db92'
 
 var url = urlInput.value
 
@@ -155,18 +155,6 @@ volumeSlider.addEventListener('input', event => {
   player.setVolume(volume)
 })
 
-var one = 'http://api.soundcloud.com/tracks/325088081/stream?consumer_key=nH8p0jYOkoVEZgJukRlG6w'
-
-var two = 'https://fanburst.com/stream/f9d20bbd-d94c-42e2-bc32-232fd418e422?client_id=51938de2-772a-449a-984c-35ca26f38078'
-
-player.enqueue([one, two])
-.then(() => {
-  console.log('queued')
-})
-.catch(error => {
-  console.error(error)
-})
-
 },{"../":2}],2:[function(require,module,exports){
 module.exports = {
   Player: require('./lib/player'),
@@ -184,25 +172,43 @@ module.exports = {
   STOP: 'pause',
   NEXT: 'next',
   PREVIOUS: 'previous',
+  RANDOM: 'random',
+  REPEAT: 'repeat',
   PLAYBACK_RATE: 'playbackRate',
   VOLUME: 'volume',
+  MAX_VOLUME: 'maxVolume',
+  MUTED: 'muted',
+  ENDED: 'ended',
   ENQUEUE: 'enqueue',
   DEQUE: 'deque',
+  EMPTY_QUEUE: 'emptyQueue',
   STATE_CHANGE: 'stateChange'
 }
 
 },{}],4:[function(require,module,exports){
-const EventEmitter = require('events')
+const EventEmitter2 = require('eventemitter2').EventEmitter2
 const arrayBufferToAudioBuffer = require('arraybuffer-to-audiobuffer');
 const {scaleLinear} = require('d3-scale')
+const randomInt = require('random-int')
 
 const PlayerEventTypes = require('./constants/PlayerEventTypes')
 
-const toString = Object.prototype.toString;
-
-class Player extends EventEmitter {
+/**
+ * Class reprensenting a Player
+ * @example
+ * const player = new Player()
+ */
+class Player {
+  /**
+   * @desc Create a Player
+   */
   constructor() {
-    super()
+    const ee = new EventEmitter2({
+      wildcard: true
+    })
+
+    this.emit = ee.emit.bind(ee)
+    this.on = ee.on.bind(ee)
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
@@ -219,11 +225,22 @@ class Player extends EventEmitter {
     .clamp(true)
 
     this._volume = 1
+    this._maxVolume = 1
     this._volumeScale = scaleLinear()
+    .domain([0, 1])
+    .range([0, this._maxVolume])
+    .clamp(true)
+    this._maxVolumeScale = scaleLinear()
     .domain([0, 1])
     .range([0, 1])
     .clamp(true)
 
+    this.random = false
+    this.repeat = false
+
+    this.isPlaying = false
+
+    this.isReady = true
     this._log('Player ready');
     this.emit(PlayerEventTypes.READY);
   }
@@ -243,6 +260,13 @@ class Player extends EventEmitter {
     }
   }
 
+  /**
+   * emptyQueue
+   * @desc Empties queue
+   * @return {Promise}
+   * @example
+   * player.emptyQueue()
+   */
   emptyQueue() {
     return new Promise((resolve, reject) => {
       this._queue = [];
@@ -250,23 +274,43 @@ class Player extends EventEmitter {
       this._audio = null;
       this._currentBuffer = null;
       this._currentSource = null;
+      this.stop()
+
+      this._log('Empty queue');
+      this.emit(PlayerEventTypes.EMPTY_QUEUE);
       resolve();
     });
   }
 
-  enqueue(item) {
+  /**
+   * enqueue
+   * @desc Enqueues an audio source to play
+   * @param {(DataView|Uint8Array|AudioBuffer|ArrayBuffer|String)} source - an audio source to play
+   * @return {Promise}
+   * @example
+   * const url = 'https://example.com/audio.mp3'
+   *
+   * player.enqueue(url)
+   * @example
+   * player.enqueue(audioBuffer)
+   * @example
+   * player.enqueue(arrayBuffer)
+   * @example
+   * player.enqueue(blob)
+   */
+  enqueue(source) {
     return new Promise((resolve, reject) => {
-      if (Array.isArray(item)) {
-        return item.forEach(x => this.enqueue(x))
+      if (Array.isArray(source)) {
+        return source.forEach(x => this.enqueue(x))
       }
 
-      if (!item) {
+      if (!source) {
         const error = new Error('argument cannot be empty.');
         this._log(error);
         return reject(error);
       }
 
-      const stringType = toString.call(item).replace(/\[.*\s(\w+)\]/, '$1');
+      const stringType = ({}).toString.call(source).replace(/\[.*\s(\w+)\]/, '$1');
 
       const proceed = (audioBuffer) => {
         this._queue.push(audioBuffer);
@@ -276,15 +320,15 @@ class Player extends EventEmitter {
       };
 
       if (stringType === 'DataView' || stringType === 'Uint8Array') {
-        return arrayBufferToAudioBuffer(item.buffer, this._context)
+        return arrayBufferToAudioBuffer(source.buffer, this._context)
         .then(proceed);
       } else if (stringType === 'AudioBuffer') {
-        return proceed(item);
+        return proceed(source);
       } else if (stringType === 'ArrayBuffer') {
-        return arrayBufferToAudioBuffer(item, this._context)
+        return arrayBufferToAudioBuffer(source, this._context)
         .then(proceed);
       } else if (stringType === 'String') {
-        return proceed(item);
+        return proceed(source);
       } else {
         const error = new Error('Invalid type.');
         this.emit('error', error);
@@ -293,22 +337,42 @@ class Player extends EventEmitter {
     });
   }
 
+  /**
+   * deqeue
+   * @desc Deques an audio source from queue
+   * @return {Promise}
+   * @example
+   * player.deque()
+   */
   deque() {
     return new Promise((resolve, reject) => {
-      const item = this._queue[this._currentQueueIndex]
-
-      if (item) {
-        this._log('Deque audio');
-        this.emit(PlayerEventTypes.DEQUE);
-        return resolve(item);
+      if (this.random) {
+        this._currentQueueIndex = randomInt(0, this._queue.length-1)
       }
 
-      return reject(new Error('no item to play'));
+      const source = this._queue[this._currentQueueIndex]
+
+      if (source) {
+        this._log('Deque audio');
+        this.emit(PlayerEventTypes.DEQUE);
+        return resolve(source);
+      }
+
+      return reject(new Error('no source to play'));
     });
   }
 
+  /**
+   * play
+   * @desc Plays current audio source in queue
+   * @return {Promise}
+   * @example
+   * player.play()
+   */
   play() {
     return new Promise((resolve, reject) => {
+      this.isPlaying = true
+
       // if paused then resume
       if (this._context.state === 'suspended') {
         this._context.resume();
@@ -334,11 +398,19 @@ class Player extends EventEmitter {
             return this.playUrl(audioBuffer);
           }
           return this.playAudioBuffer(audioBuffer);
-        }).then(resolve);
+        })
+        .then(resolve);
       }
     });
   }
 
+  /**
+   * playQueue
+   * @desc Start playing audio sources in queue
+   * @return {Promise}
+   * @example
+   * player.playQueue()
+   */
   playQueue() {
     return this.play().then(() => {
       if (this._queue.length) {
@@ -347,66 +419,103 @@ class Player extends EventEmitter {
     });
   }
 
+  /**
+   * stop
+   * @desc Stop playing current audio source
+   * @return {Promise}
+   * @example
+   * player.stop()
+   */
   stop() {
     return new Promise((resolve, reject) => {
-        if (this._currentSource) {
-          this._currentSource.onended = function() {};
-          this._currentSource.stop();
-        }
+      this.isPlaying = false
 
-        if (this._audio) {
-          this._audio.onended = function() {};
-          this._audio.currentTime = 0;
-          this._audio.pause();
-        }
+      if (this._currentSource) {
+        this._currentSource.onended = function() {};
+        this._currentSource.stop();
+      }
 
-        this._log('Stop audio');
-        this.emit(PlayerEventTypes.STOP);
+      if (this._audio) {
+        this._audio.onended = function() {};
+        this._audio.currentTime = 0;
+        this._audio.pause();
+      }
+
+      this._log('Stop audio');
+      this.emit(PlayerEventTypes.STOP);
     });
   }
 
+  /**
+   * pause
+   * @desc Pause playing current audio source
+   * @return {Promise}
+   * @example
+   * player.pause()
+   */
   pause() {
     return new Promise((resolve, reject) => {
-        if (this._currentSource && this._context.state === 'running') {
-          this._context.suspend();
-        }
+      this.isPlaying = false
 
-        if (this._audio) {
-          this._audio.pause();
-        }
+      if (this._currentSource && this._context.state === 'running') {
+        this._context.suspend();
+      }
 
-        this._log('Pause audio');
-        this.emit(PlayerEventTypes.PAUSE);
+      if (this._audio) {
+        this._audio.pause();
+      }
+
+      this._log('Pause audio');
+      this.emit(PlayerEventTypes.PAUSE);
     });
   }
 
+  /**
+   * replay
+   * @desc Replay current audio source
+   * @return {Promise}
+   * @example
+   * player.replay()
+   */
   replay() {
     return new Promise((resolve, reject) => {
-        if (this._currentBuffer) {
-          this._log('Replay audio');
-          this.emit(PlayerEventTypes.REPLAY);
+      if (this._currentBuffer) {
+        this._log('Replay audio');
+        this.emit(PlayerEventTypes.REPLAY);
 
-          if (this._context.state === 'suspended') {
-            this._context.resume();
-          }
-
-          if (this._currentSource) {
-            this._currentSource.stop();
-            this._currentSource.onended = function() {};
-          }
-          return this.playAudioBuffer(this._currentBuffer);
-        } else if (this._audio) {
-          this._log('Replay audio');
-          this.emit(PlayerEventTypes.REPLAY);
-          return this.playUrl(this._audio.src);
-        } else {
-          const error = new Error('No audio source loaded.');
-          this.emit('error', error)
-          reject();
+        if (this._context.state === 'suspended') {
+          this._context.resume();
         }
+
+        if (this._currentSource) {
+          this._currentSource.stop();
+          this._currentSource.onended = function() {};
+        }
+        return this.playAudioBuffer(this._currentBuffer);
+      } else if (this._audio) {
+        this._log('Replay audio');
+        this.emit(PlayerEventTypes.REPLAY);
+        return this.playUrl(this._audio.src);
+      } else {
+        const error = new Error('No audio source loaded.');
+        this.emit('error', error)
+        reject();
+      }
     });
   }
 
+  /**
+   * playBlob
+   * @desc Play an audio Blob
+   * @param {Blob} blob - audio blob
+   * @return {Promise}
+   * @example
+   * const blob = new Blob([dataView], {
+   *   type: 'audio/wav'
+   * })
+   *
+   * player.playBlob(blob)
+   */
   playBlob(blob) {
     return new Promise((resolve, reject) => {
       if (!blob) {
@@ -440,6 +549,14 @@ class Player extends EventEmitter {
     });
   }
 
+  /**
+   * playAudioBuffer
+   * @desc Play an AudioBuffer
+   * @param {AudioBuffer} audioBuffer - an AudioBuffer
+   * @return {Promise}
+   * @example
+   * player.playAudioBuffer(audioBuffer)
+   */
   playAudioBuffer(buffer) {
     return new Promise((resolve, reject) => {
       if (!buffer) {
@@ -467,73 +584,234 @@ class Player extends EventEmitter {
     });
   }
 
+  /**
+   * getCurrentAudioBuffer
+   * @desc Return current audio buffer playing
+   * @return {AudioBuffer}
+   * @example
+   * player.getCurrentAudioBuffer()
+   */
+  getCurrentAudioBuffer() {
+    return Promise.resolve(this._currentBuffer)
+  }
+
+  /**
+   * playUrl
+   * @desc Play an MP3 url
+   * @param {String} url - MP3 url
+   * @return {Promise}
+   * @example
+   * const url = 'https://example.com/audio.mp3'
+   *
+   * player.playUrl(url)
+   */
   playUrl(url) {
     return new Promise((resolve, reject) => {
-      const audio = new Audio();
-      audio.src = url;
-      this._currentBuffer = null;
-      this._currentSource = null;
-      this._audio = audio;
-      this._audio.playbackRate = this._playbackRate
+      const usingAudioTag = false
 
-      audio.onended = (event) => {
-        this._log('Audio ended');
-        this.emit(PlayerEventTypes.ENDED);
-        resolve();
-      };
+      if (usingAudioTag) {
+        const audio = new Audio();
+        audio.src = url;
+        this._currentBuffer = null;
+        this._currentSource = null;
+        this._audio = audio;
+        this._audio.playbackRate = this._playbackRate
 
-      audio.onerror = (error) => {
-        this.emit('error', error);
-        reject(error);
-      };
+        audio.onended = (event) => {
+          this._log('Audio ended');
+          this.emit(PlayerEventTypes.ENDED);
+          resolve();
+        };
 
-      audio.play();
+        audio.onerror = (error) => {
+          this.emit('error', error);
+          reject(error);
+        };
+
+        audio.play();
+      } else {
+        return this.getAudioDataFromUrl(url)
+        .then(buffer => {
+          return this.playAudioBuffer(buffer)
+        })
+      }
     });
   }
 
+  /**
+   * getAudioDataFromUrl
+   * @desc Get the binary audio data from an audio source url in ArrayBuffer form
+   * @param {String} url - audio source url
+   * @return {Promise} arrayBuffer
+   * @example
+   * const url = 'https://example.com/audio.mp3'
+   *
+   * player.getAudioDataFromUrl()
+   * .then(arrayBuffer => {
+   *
+   * })
+   */
+  getAudioDataFromUrl(url) {
+    return new Promise((resolve, reject) => {
+      const request = new XMLHttpRequest()
+      request.open('GET', url, true)
+      request.responseType = 'arraybuffer'
+
+      request.onload = () => {
+        const audioData = request.response
+
+        this._context.decodeAudioData(audioData, (buffer) => {
+          resolve(buffer)
+        },
+        (error) => {
+          reject(error)
+        })
+      }
+
+      request.send()
+    })
+  }
+
+  /**
+   * next
+   * @desc Play next audio source in queue
+   * @return {Promise}
+   * @example
+   * player.next()
+   */
   next() {
     return new Promise((resolve, reject) => {
-      const item = this._queue[this._currentQueueIndex + 1]
+      const isLast = (this._currentQueueIndex === this._queue.length-1)
 
-      if (item) {
+      if (isLast) {
+        this._currentQueueIndex = -1
+      }
+
+      const source = this._queue[this._currentQueueIndex + 1]
+
+      if (source) {
         this._currentQueueIndex++
 
         this._log('Next audio');
         this.emit(PlayerEventTypes.NEXT);
 
+        const continuePlaying = this.isPlaying
+
         this.stop()
         this._audio = null
-        return resolve(item)
+        resolve(source)
+
+        if (continuePlaying) {
+          this.play()
+        }
       }
 
-      return reject(new Error('no item to play'));
+      return reject(new Error('no source to play'));
     });
   }
 
+  /**
+   * previous
+   * @desc Play previous audio source in queue
+   * @return {Promise}
+   * @example
+   * player.previous()
+   */
   previous() {
     return new Promise((resolve, reject) => {
-      const item = this._queue[this._currentQueueIndex - 1]
+      const source = this._queue[this._currentQueueIndex - 1]
 
-      if (item) {
+      if (source) {
         this._currentQueueIndex--
         this._log('Previous audio');
         this.emit(PlayerEventTypes.PREVIOUS);
 
+        const continuePlaying = this.isPlaying
+
         this.stop()
         this._audio = null
-        return resolve(item)
+
+        resolve(source)
+
+        if (continuePlaying) {
+          this.play()
+        }
       }
 
-      return reject(new Error('no item to play'));
+      return reject(new Error('no source to play'))
     });
   }
 
+  /**
+   * setRandom
+   * @desc Enable to disable random playback
+   * @param {Boolean} enabled - boolean to enable random playback
+   * @return {Promise}
+   * @example
+   * player.setRandom(true)
+   */
+  setRandom(enabled) {
+    this._log(`Set random: ${enabled}`)
+    this.emit(PlayerEventTypes.RANDOM)
+    this.random = enabled
+  }
+
+  /**
+   * setRepeat
+   * @desc Enable to disable repeat mode. Repeat mode replays the audio sources once the entire queue has finished playing.
+   * @param {Boolean} enabled - boolean to enable repeat mode
+   * @return {Promise}
+   * @example
+   * player.setRepeat(true)
+   */
+  setRepeat(enabled) {
+    this._log(`Set repeat: ${enabled}`)
+    this.emit(PlayerEventTypes.REPEAT)
+    this.repeat = enabled
+  }
+
+  /**
+   * hasNext
+   * @desc Return true if there's an audio source to play next in queue
+   * @return {Boolean} hasNext
+   * @example
+   * const hasNext = player.hasNext()
+   */
+  hasNext() {
+    //const hasNext = this._queue.length > 1 && this._currentQueueIndex < this._queue.length-1
+    const hasNext = this._queue.length > 1
+    return hasNext
+  }
+
+  /**
+   * hasPrevious
+   * @desc Return true if there's a previous audio source in queue
+   * @return {Boolean} hasPrevious
+   * @example
+   * const hasPrevious = player.hasPrevious()
+   */
+  hasPrevious() {
+    const hasPrevious = this._queue.length > 1 && this._currentQueueIndex > 0
+    return hasPrevious
+  }
+
+  /**
+   * setPlaybackRate
+   * @desc Set the plaback rate speed, range 0.75-2
+   * @return {Promise}
+   * @example
+   * player.setPlaybackRate(2)
+   */
   setPlaybackRate(rate) {
     return new Promise((resolve, reject) => {
       this._playbackRate = this._playbackRateScale(rate)
 
       if (this._audio) {
-        this._audio.playbackRate = this._playbackRate;
+        this._audio.playbackRate = this._playbackRate
+      }
+
+      if (this._currentSource) {
+        this._currentSource.playbackRate.value = this._playbackRate
       }
 
       this._log(`Set playback rate: ${this._playbackRate}`);
@@ -543,6 +821,25 @@ class Player extends EventEmitter {
     })
   }
 
+  /**
+   * getPlaybackRate
+   * @desc Get the current plaback rate speed
+   * @return {Number} playback rate speed
+   * @example
+   * const playbackRate = player.getPlaybackRate()
+   */
+  getPlaybackRate() {
+    return this._playbackRate
+  }
+
+  /**
+   * setVolume
+   * @desc Set volume, range 0-1
+   * @param {Number} volume - volume value
+   * @return {Promise}
+   * @example
+   * player.setVolume(0.9)
+   */
   setVolume(volume) {
     return new Promise((resolve, reject) => {
       this._volume = this._volumeScale(volume)
@@ -558,6 +855,115 @@ class Player extends EventEmitter {
     })
   }
 
+  /**
+   * getVolume
+   * @desc Get current volume value
+   * @return {Number} volume - current volume value
+   * @example
+   * player.getVolume()
+   */
+  getVolume() {
+    return this._volume
+  }
+
+  /**
+   * setMaxVolume
+   * @desc Set the maximum volume limit. For example if max volume is set to 0.6, then when volume is scaled from 0-0.6, meaning that volume level at 1 will play at 0.6
+   * @param {Number} maxVolume - max volume, range 0-1
+   * @return {Promise}
+   * @example
+   * player.setMaxVolume(0.8)
+   */
+  setMaxVolume(maxVolume) {
+    return new Promise((resolve, reject) => {
+      this._maxVolume = this._maxVolumeScale(maxVolume)
+      this._volumeScale = scaleLinear()
+      .domain([0, 1])
+      .range([0, this._maxVolume])
+      .clamp(true)
+
+      this.setVolume(this._volume)
+
+      this._log(`Set max volume: ${this._volume}`);
+      this.emit(PlayerEventTypes.MAX_VOLUME, this._maxVolume);
+      resolve()
+    })
+  }
+
+  /**
+   * getMaxVolume
+   * @desc Get max volume value
+   * @return {Number} maxVolume - max volume value
+   * @example
+   * player.getMaxVolume()
+   */
+  getMaxVolume() {
+    return this._maxVolume
+  }
+
+  setMuted(enabled) {
+    // TODO
+    this.muted = !!enabled
+  }
+
+  /**
+   * getCurrentTime
+   * @desc Return elapsed time in seconds since the audio source started playing
+   * @return {Number} time - current time
+   * @example
+   * player.getCurrentTime()
+   */
+  getCurrentTime() {
+    if (this._context) {
+      return this._context.currentTime
+    }
+
+    if (this._audio) {
+      return this._audio.currentTime
+    }
+
+    return 0
+  }
+
+  /**
+   * seekTo
+   * @desc Seek to a specified time in audio source
+   * @return {Promise}
+   * @example
+   * const seconds = 45
+   *
+   * player.seekTo(seconds)
+   */
+  seekTo(seconds) {
+    if (this._context) {
+      this._context.currentTime = seconds
+    }
+
+    if (this._audio) {
+      this._audio.currentTime = seconds
+    }
+
+    return Promise.resolve()
+  }
+
+  /**
+   * getDuration
+   * @desc Get duration of audio source
+   * @return {Number} duration - duration of audio source
+   * @example
+   * player.getDuration()
+   */
+  getDuration() {
+    return 0
+  }
+
+  /**
+   * @static EventTypes
+   * @desc Return event types
+   * @return {Object} eventTypes - all player event types
+   * @example
+   * const EventTypes = Player.EventTypes
+   */
   static get EventTypes() {
     return PlayerEventTypes
   }
@@ -565,31 +971,54 @@ class Player extends EventEmitter {
 
 module.exports = Player
 
-},{"./constants/PlayerEventTypes":3,"arraybuffer-to-audiobuffer":6,"d3-scale":12,"events":15}],5:[function(require,module,exports){
-const EventEmitter = require('events')
+},{"./constants/PlayerEventTypes":3,"arraybuffer-to-audiobuffer":6,"d3-scale":12,"eventemitter2":15,"random-int":22}],5:[function(require,module,exports){
+const EventEmitter2 = require('eventemitter2').EventEmitter2
 const qs = require('qs')
 const {scaleLinear} = require('d3-scale')
 
 const PlayerEventTypes = require('./constants/PlayerEventTypes')
 
-class YoutubePlayer extends EventEmitter {
+const ee = new EventEmitter2({
+  wildcard: true
+})
+
+/**
+ * Class reprensenting a YoutubePlayer
+ * @example
+ * const player = new YoutubePlayer()
+ */
+class YoutubePlayer {
+  /**
+   * @desc Create a YoutubePlayer
+   */
   constructor() {
-    super()
+    this.emit = ee.emit.bind(ee)
+    this.on = ee.on.bind(ee)
 
     this._player = null
 
+    this._playbackRate = 1
     this._playbackRateScale = scaleLinear()
     .domain([0.75, 2])
     .range([0.75, 2])
     .clamp(true)
 
-    this._volume = 100
+    this._volume = 100 // scaled
+    this._maxVolume = 100 // scaled
     this._volumeScale = scaleLinear()
+    .domain([0, 1])
+    .range([0, this._maxVolume])
+    .clamp(true)
+    this._maxVolumeScale = scaleLinear()
     .domain([0, 1])
     .range([0, 100])
     .clamp(true)
 
-    this._isReady = false
+    this._isApiReady = false
+    this.isReady = false
+
+    this.random = false
+    this.repeat = false
 
     if (!window.onYouTubeIframeAPIReady) {
       const tag = document.createElement('script')
@@ -602,13 +1031,18 @@ class YoutubePlayer extends EventEmitter {
     }
 
     window.onYouTubeIframeAPIReady = () => {
+      this._onYoutubeApiReady()
+    }
 
+    // if already api loaded
+    if (window.YT) {
+      this._onYoutubeApiReady()
     }
   }
 
   _destroyPlayer() {
     return new Promise((resolve, reject) => {
-      if (this._player) {
+      if (this._player && this._player.destroy) {
         this._player.destroy()
       }
 
@@ -635,24 +1069,33 @@ class YoutubePlayer extends EventEmitter {
       this._playerEl.id = `player_${Math.random()*1e10|0}`
       document.body.appendChild(this._playerEl)
 
-      this._player = new YT.Player(this._playerEl.id, {
-        height: 1,
-        width: 1,
-        events: {
-          onReady: this._onPlayerReady.bind(this),
-          onStateChange: this._onPlayerStateChange.bind(this)
-        },
-        videoId: videoId,
-        playerVars: {
-          listType: 'playlist',
-          list: playlistId
-        }
-      })
+      if (window.YT) {
+        this._player = new window.YT.Player(this._playerEl.id, {
+          height: 1,
+          width: 1,
+          events: {
+            onReady: this._onPlayerReady.bind(this),
+            onStateChange: this._onPlayerStateChange.bind(this)
+          },
+          videoId: videoId,
+          playerVars: {
+            listType: 'playlist',
+            list: playlistId
+          }
+        })
+      }
     })
   }
 
+  _onYoutubeApiReady() {
+    this._isApiReady = true;
+  }
+
   _onPlayerReady(event) {
-    this._isReady = true
+    this.setPlaybackRate(this._playbackRate)
+    this.setVolume(this._volume)
+
+    this.isReady = true
     this._log('Player ready');
     this.emit(PlayerEventTypes.READY);
   }
@@ -677,14 +1120,49 @@ class YoutubePlayer extends EventEmitter {
     }
   }
 
+  /**
+   * getVideoUrl
+   * @desc Get currently playing YouTube video url
+   * @return {String}
+   * @example
+   * const url = player.getVideoUrl()
+   */
+  getVideoUrl() {
+    if (this._player) {
+      return this._player.getVideoUrl()
+    }
+
+    return null
+  }
+
+  /**
+   * emptyQueue
+   * @desc Empties queue
+   * @return {Promise}
+   * @example
+   * player.emptyQueue()
+   */
   emptyQueue() {
     return new Promise((resolve, reject) => {
       this.stop()
+
+      this._log('Empty queue');
+      this.emit(PlayerEventTypes.EMPTY_QUEUE);
 
       resolve()
     })
   }
 
+  /**
+   * enqueue
+   * @desc Enqueue a YouTube url to play
+   * @param {String} url - a YouTube url
+   * @return {Promise}
+   * @example
+   * const url = 'https://www.youtube.com/watch?v=qk1nnAHI1mI'
+   *
+   * player.enqueue(url)
+   */
   enqueue(url) {
     return new Promise((resolve, reject) => {
       if (Array.isArray(url)) {
@@ -699,18 +1177,34 @@ class YoutubePlayer extends EventEmitter {
         return reject(new Error('videoId not found'))
       }
 
-      return this._setPlayer({
-        videoId,
-        playlistId
-      })
-
       this._log('Enqueue audio');
       this.emit(PlayerEventTypes.ENQUEUE);
 
-      resolve()
+      if (this._isApiReady) {
+        return this._setPlayer({
+          videoId,
+          playlistId
+        })
+      } else {
+        setTimeout(() => {
+          this._setPlayer({
+            videoId,
+            playlistId
+          })
+          .then(() => resolve())
+          .catch(() => reject())
+        }, 1e3)
+      }
     })
   }
 
+  /**
+   * deqeue
+   * @desc Deques an YouTube video from queue
+   * @return {Promise}
+   * @example
+   * player.deque()
+   */
   deque() {
     return new Promise((resolve, reject) => {
       this.next()
@@ -721,9 +1215,16 @@ class YoutubePlayer extends EventEmitter {
     })
   }
 
+  /**
+   * play
+   * @desc Plays current YouTube video in queue
+   * @return {Promise}
+   * @example
+   * player.play()
+   */
   play() {
     return new Promise((resolve, reject) => {
-      if (this._player) {
+      if (this._player && this._player.playVideo) {
         this._player.playVideo()
 
         this._log('Play audio');
@@ -735,20 +1236,27 @@ class YoutubePlayer extends EventEmitter {
     })
   }
 
+  /**
+   * playQueue
+   * @desc Start playing YouTube video in queue
+   * @return {Promise}
+   * @example
+   * player.playQueue()
+   */
   playQueue() {
     return this.play()
   }
 
-  playUrl(url) {
-    return this.emptyQueue()
-    .then(() => {
-      return this.enqueue(url)
-    })
-  }
-
+  /**
+   * stop
+   * @desc Stop playing current YouTube video
+   * @return {Promise}
+   * @example
+   * player.stop()
+   */
   stop() {
     return new Promise((resolve, reject) => {
-      if (this._player) {
+      if (this._player && this._player.stopVideo) {
         this._player.stopVideo()
       }
 
@@ -758,9 +1266,16 @@ class YoutubePlayer extends EventEmitter {
     })
   }
 
+  /**
+   * pause
+   * @desc Pause playing current YouTube video
+   * @return {Promise}
+   * @example
+   * player.pause()
+   */
   pause() {
     return new Promise((resolve, reject) => {
-      if (this._player) {
+      if (this._player && this._player.pauseVideo) {
         this._player.pauseVideo()
       }
 
@@ -770,9 +1285,16 @@ class YoutubePlayer extends EventEmitter {
     })
   }
 
+  /**
+   * replay
+   * @desc Replay current YouTube video
+   * @return {Promise}
+   * @example
+   * player.replay()
+   */
   replay() {
     return new Promise((resolve, reject) => {
-      if (this._player) {
+      if (this._player && this._player.seekTo) {
         this._player.seekTo(0)
         this.play()
 
@@ -785,9 +1307,33 @@ class YoutubePlayer extends EventEmitter {
     })
   }
 
+  /**
+   * playUrl
+   * @desc Play YouTube url
+   * @param {String} url - YouTube url
+   * @return {Promise}
+   * @example
+   * const url = 'https://www.youtube.com/watch?v=qk1nnAHI1mI'
+   *
+   * player.playUrl(url)
+   */
+  playUrl(url) {
+    return this.emptyQueue()
+    .then(() => {
+      return this.enqueue(url)
+    })
+  }
+
+  /**
+   * next
+   * @desc Play next YouTube video in queue
+   * @return {Promise}
+   * @example
+   * player.next()
+   */
   next() {
     return new Promise((resolve, reject) => {
-      if (this._player) {
+      if (this._player && this._player.nextVideo) {
         this._player.nextVideo()
 
         this._log('Next audio');
@@ -799,9 +1345,16 @@ class YoutubePlayer extends EventEmitter {
     })
   }
 
+  /**
+   * previous
+   * @desc Play previous YouTube video in queue
+   * @return {Promise}
+   * @example
+   * player.previous()
+   */
   previous() {
     return new Promise((resolve, reject) => {
-      if (this._player) {
+      if (this._player && this._player.previousVideo) {
         this._player.previousVideo()
 
         this._log('Previous audio');
@@ -813,39 +1366,218 @@ class YoutubePlayer extends EventEmitter {
     })
   }
 
+  /**
+   * setRandom
+   * @desc Enable to disable random playback
+   * @param {Boolean} enabled - boolean to enable random playback
+   * @return {Promise}
+   * @example
+   * player.setRandom(true)
+   */
+  setRandom(enabled) {
+    this.random = enabled
+    this._log(`Set random: ${enabled}`)
+    this.emit(PlayerEventTypes.RANDOM)
+    return Promise.resolve(true)
+  }
+
+  /**
+   * setRepeat
+   * @desc Enable to disable repeat mode. Repeat mode replays the YouTube videos once the entire queue has finished playing.
+   * @param {Boolean} enabled - boolean to enable repeat mode
+   * @return {Promise}
+   * @example
+   * player.setRepeat(true)
+   */
+  setRepeat(enabled) {
+    this.repeat = enabled
+    this._log(`Set repeat: ${enabled}`)
+    this.emit(PlayerEventTypes.REPEAT)
+    return Promise.resolve(true)
+  }
+
+  /**
+   * hasNext
+   * @desc Return true if there's a YouTube video to play next in queue
+   * @return {Boolean} hasNext
+   * @example
+   * const hasNext = player.hasNext()
+   */
+  hasNext() {
+    // TODO
+    return true
+  }
+
+  /**
+   * hasPrevious
+   * @desc Return true if there's a previous YouTube video in queue
+   * @return {Boolean} hasPrevious
+   * @example
+   * const hasPrevious = player.hasPrevious()
+   */
+  hasPrevious() {
+    // TODO
+    return true
+  }
+
+  /**
+   * setPlaybackRate
+   * @desc Set the plaback rate speed, range 0.75-2
+   * @return {Promise}
+   * @example
+   * player.setPlaybackRate(2)
+   */
   setPlaybackRate(rate) {
     return new Promise((resolve, reject) => {
-      if (this._player) {
-        this._playbackRate = this._playbackRateScale(rate)
+      this._playbackRate = this._playbackRateScale(rate)
 
+      if (this._player && this._player.setPlaybackRate) {
         this._player.setPlaybackRate(this._playbackRate)
-
-        this._log(`Set playback rate: ${this._playbackRate}`);
-        this.emit(PlayerEventTypes.PLAYBACK_RATE, this._playbackRate);
-
-        resolve()
-      } else {
-        reject(new Error('player not ready'))
       }
+
+      this._log(`Set playback rate: ${this._playbackRate}`);
+      this.emit(PlayerEventTypes.PLAYBACK_RATE, this._playbackRate);
+      resolve()
     })
   }
 
+  /**
+   * getPlaybackRate
+   * @desc Get the current plaback rate speed
+   * @return {Number} playback rate speed
+   * @example
+   * const playbackRate = player.getPlaybackRate()
+   */
+  getPlaybackRate() {
+    return this._playbackRate
+  }
+
+  /**
+   * setVolume
+   * @desc Set volume, range 0-1
+   * @param {Number} volume - volume value
+   * @return {Promise}
+   * @example
+   * player.setVolume(0.9)
+   */
   setVolume(volume) {
     return new Promise((resolve, reject) => {
-      if (this._player) {
-        this._volume = this._volumeScale(volume)
+      this._volume = this._volumeScale(volume)
 
+      if (this._player && this._player.setVolume) {
         this._player.setVolume(this._volume)
-
-        this._log(`Set volume: ${this._volume}`);
-        this.emit(PlayerEventTypes.VOLUME, this._volume);
-        resolve()
-      } else {
-        reject(new Error('player not ready'))
       }
+
+      this._log(`Set volume: ${this._volume}`);
+      this.emit(PlayerEventTypes.VOLUME, this._volume);
+      resolve()
     })
   }
 
+  /**
+   * getVolume
+   * @desc Get current volume value
+   * @return {Number} volume - current volume value
+   * @example
+   * player.getVolume()
+   */
+  getVolume() {
+    return this._volume
+  }
+
+  /**
+   * setMaxVolume
+   * @desc Set the maximum volume limit. For example if max volume is set to 0.6, then when volume is scaled from 0-0.6, meaning that volume level at 1 will play at 0.6
+   * @param {Number} maxVolume - max volume, range 0-1
+   * @return {Promise}
+   * @example
+   * player.setMaxVolume(0.8)
+   */
+  setMaxVolume(maxVolume) {
+    return new Promise((resolve, reject) => {
+      this._maxVolume = this._maxVolumeScale(maxVolume)
+      this._volumeScale = scaleLinear()
+      .domain([0, 1])
+      .range([0, this._maxVolume])
+      .clamp(true)
+
+      this.setVolume(this._volume)
+
+      this._log(`Set max volume: ${this._volume}`);
+      this.emit(PlayerEventTypes.MAX_VOLUME, this._maxVolume);
+      resolve()
+    })
+  }
+
+  /**
+   * getMaxVolume
+   * @desc Get max volume value
+   * @return {Number} maxVolume - max volume value
+   * @example
+   * player.getMaxVolume()
+   */
+  getMaxVolume() {
+    return this._maxVolume
+  }
+
+  setMuted(enabled) {
+    this.muted = !!enabled
+  }
+
+  /**
+   * getCurrentTime
+   * @desc Return elapsed time in seconds since the YouTube video started playing
+   * @return {Number} time - current time
+   * @example
+   * player.getCurrentTime()
+   */
+  getCurrentTime() {
+    if (this._player) {
+      return this._player.getCurrentTime()
+    }
+
+    return 0
+  }
+
+  /**
+   * seekTo
+   * @desc Seek to a specified time in YouTube video
+   * @return {Promise}
+   * @example
+   * const seconds = 45
+   *
+   * player.seekTo(seconds)
+   */
+  seekTo(seconds) {
+    if (this._player) {
+      return this._player.seekTo(seconds)
+    }
+
+    return Promise.resolve()
+  }
+
+  /**
+   * getDuration
+   * @desc Get duration of YouTube video
+   * @return {Number} duration - duration of YouTube video
+   * @example
+   * player.getDuration()
+   */
+  getDuration() {
+    if (this._player) {
+      return this._player.getDuration()
+    }
+
+    return 0
+  }
+
+  /**
+   * @static EventTypes
+   * @desc Return event types
+   * @return {Object} eventTypes - all player event types
+   * @example
+   * const EventTypes = Player.EventTypes
+   */
   static get EventTypes() {
     return PlayerEventTypes
   }
@@ -853,7 +1585,7 @@ class YoutubePlayer extends EventEmitter {
 
 module.exports = YoutubePlayer
 
-},{"./constants/PlayerEventTypes":3,"d3-scale":12,"events":15,"qs":17}],6:[function(require,module,exports){
+},{"./constants/PlayerEventTypes":3,"d3-scale":12,"eventemitter2":15,"qs":18}],6:[function(require,module,exports){
 ;(function(root) {
   'use strict';
 
@@ -5008,310 +5740,972 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 },{}],15:[function(require,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
+(function (process){
+/*!
+ * EventEmitter2
+ * https://github.com/hij1nx/EventEmitter2
+ *
+ * Copyright (c) 2013 hij1nx
+ * Licensed under the MIT license.
+ */
+;!function(undefined) {
 
-function EventEmitter() {
-  this._events = this._events || {};
-  this._maxListeners = this._maxListeners || undefined;
-}
-module.exports = EventEmitter;
+  var isArray = Array.isArray ? Array.isArray : function _isArray(obj) {
+    return Object.prototype.toString.call(obj) === "[object Array]";
+  };
+  var defaultMaxListeners = 10;
 
-// Backwards-compat with node 0.10.x
-EventEmitter.EventEmitter = EventEmitter;
-
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-
-// By default EventEmitters will print a warning if more than 10 listeners are
-// added to it. This is a useful default which helps finding memory leaks.
-EventEmitter.defaultMaxListeners = 10;
-
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-EventEmitter.prototype.setMaxListeners = function(n) {
-  if (!isNumber(n) || n < 0 || isNaN(n))
-    throw TypeError('n must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-
-EventEmitter.prototype.emit = function(type) {
-  var er, handler, len, args, i, listeners;
-
-  if (!this._events)
+  function init() {
     this._events = {};
+    if (this._conf) {
+      configure.call(this, this._conf);
+    }
+  }
 
-  // If there is no 'error' event listener then throw.
-  if (type === 'error') {
-    if (!this._events.error ||
-        (isObject(this._events.error) && !this._events.error.length)) {
-      er = arguments[1];
-      if (er instanceof Error) {
-        throw er; // Unhandled 'error' event
-      } else {
-        // At least give some kind of context to the user
-        var err = new Error('Uncaught, unspecified "error" event. (' + er + ')');
-        err.context = er;
-        throw err;
+  function configure(conf) {
+    if (conf) {
+      this._conf = conf;
+
+      conf.delimiter && (this.delimiter = conf.delimiter);
+      this._maxListeners = conf.maxListeners !== undefined ? conf.maxListeners : defaultMaxListeners;
+
+      conf.wildcard && (this.wildcard = conf.wildcard);
+      conf.newListener && (this.newListener = conf.newListener);
+      conf.verboseMemoryLeak && (this.verboseMemoryLeak = conf.verboseMemoryLeak);
+
+      if (this.wildcard) {
+        this.listenerTree = {};
       }
-    }
-  }
-
-  handler = this._events[type];
-
-  if (isUndefined(handler))
-    return false;
-
-  if (isFunction(handler)) {
-    switch (arguments.length) {
-      // fast cases
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      // slower
-      default:
-        args = Array.prototype.slice.call(arguments, 1);
-        handler.apply(this, args);
-    }
-  } else if (isObject(handler)) {
-    args = Array.prototype.slice.call(arguments, 1);
-    listeners = handler.slice();
-    len = listeners.length;
-    for (i = 0; i < len; i++)
-      listeners[i].apply(this, args);
-  }
-
-  return true;
-};
-
-EventEmitter.prototype.addListener = function(type, listener) {
-  var m;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events)
-    this._events = {};
-
-  // To avoid recursion in the case that type === "newListener"! Before
-  // adding it to the listeners, first emit "newListener".
-  if (this._events.newListener)
-    this.emit('newListener', type,
-              isFunction(listener.listener) ?
-              listener.listener : listener);
-
-  if (!this._events[type])
-    // Optimize the case of one listener. Don't need the extra array object.
-    this._events[type] = listener;
-  else if (isObject(this._events[type]))
-    // If we've already got an array, just append.
-    this._events[type].push(listener);
-  else
-    // Adding the second element, need to change to array.
-    this._events[type] = [this._events[type], listener];
-
-  // Check for listener leak
-  if (isObject(this._events[type]) && !this._events[type].warned) {
-    if (!isUndefined(this._maxListeners)) {
-      m = this._maxListeners;
     } else {
-      m = EventEmitter.defaultMaxListeners;
+      this._maxListeners = defaultMaxListeners;
+    }
+  }
+
+  function logPossibleMemoryLeak(count, eventName) {
+    var errorMsg = '(node) warning: possible EventEmitter memory ' +
+        'leak detected. ' + count + ' listeners added. ' +
+        'Use emitter.setMaxListeners() to increase limit.';
+
+    if(this.verboseMemoryLeak){
+      errorMsg += ' Event name: ' + eventName + '.';
     }
 
-    if (m && m > 0 && this._events[type].length > m) {
-      this._events[type].warned = true;
-      console.error('(node) warning: possible EventEmitter memory ' +
-                    'leak detected. %d listeners added. ' +
-                    'Use emitter.setMaxListeners() to increase limit.',
-                    this._events[type].length);
-      if (typeof console.trace === 'function') {
-        // not supported in IE 10
+    if(typeof process !== 'undefined' && process.emitWarning){
+      var e = new Error(errorMsg);
+      e.name = 'MaxListenersExceededWarning';
+      e.emitter = this;
+      e.count = count;
+      process.emitWarning(e);
+    } else {
+      console.error(errorMsg);
+
+      if (console.trace){
         console.trace();
       }
     }
   }
 
-  return this;
-};
-
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.once = function(type, listener) {
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  var fired = false;
-
-  function g() {
-    this.removeListener(type, g);
-
-    if (!fired) {
-      fired = true;
-      listener.apply(this, arguments);
-    }
+  function EventEmitter(conf) {
+    this._events = {};
+    this.newListener = false;
+    this.verboseMemoryLeak = false;
+    configure.call(this, conf);
   }
+  EventEmitter.EventEmitter2 = EventEmitter; // backwards compatibility for exporting EventEmitter property
 
-  g.listener = listener;
-  this.on(type, g);
-
-  return this;
-};
-
-// emits a 'removeListener' event iff the listener was removed
-EventEmitter.prototype.removeListener = function(type, listener) {
-  var list, position, length, i;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events || !this._events[type])
-    return this;
-
-  list = this._events[type];
-  length = list.length;
-  position = -1;
-
-  if (list === listener ||
-      (isFunction(list.listener) && list.listener === listener)) {
-    delete this._events[type];
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-
-  } else if (isObject(list)) {
-    for (i = length; i-- > 0;) {
-      if (list[i] === listener ||
-          (list[i].listener && list[i].listener === listener)) {
-        position = i;
-        break;
+  //
+  // Attention, function return type now is array, always !
+  // It has zero elements if no any matches found and one or more
+  // elements (leafs) if there are matches
+  //
+  function searchListenerTree(handlers, type, tree, i) {
+    if (!tree) {
+      return [];
+    }
+    var listeners=[], leaf, len, branch, xTree, xxTree, isolatedBranch, endReached,
+        typeLength = type.length, currentType = type[i], nextType = type[i+1];
+    if (i === typeLength && tree._listeners) {
+      //
+      // If at the end of the event(s) list and the tree has listeners
+      // invoke those listeners.
+      //
+      if (typeof tree._listeners === 'function') {
+        handlers && handlers.push(tree._listeners);
+        return [tree];
+      } else {
+        for (leaf = 0, len = tree._listeners.length; leaf < len; leaf++) {
+          handlers && handlers.push(tree._listeners[leaf]);
+        }
+        return [tree];
       }
     }
 
-    if (position < 0)
-      return this;
+    if ((currentType === '*' || currentType === '**') || tree[currentType]) {
+      //
+      // If the event emitted is '*' at this part
+      // or there is a concrete match at this patch
+      //
+      if (currentType === '*') {
+        for (branch in tree) {
+          if (branch !== '_listeners' && tree.hasOwnProperty(branch)) {
+            listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i+1));
+          }
+        }
+        return listeners;
+      } else if(currentType === '**') {
+        endReached = (i+1 === typeLength || (i+2 === typeLength && nextType === '*'));
+        if(endReached && tree._listeners) {
+          // The next element has a _listeners, add it to the handlers.
+          listeners = listeners.concat(searchListenerTree(handlers, type, tree, typeLength));
+        }
 
-    if (list.length === 1) {
-      list.length = 0;
-      delete this._events[type];
+        for (branch in tree) {
+          if (branch !== '_listeners' && tree.hasOwnProperty(branch)) {
+            if(branch === '*' || branch === '**') {
+              if(tree[branch]._listeners && !endReached) {
+                listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], typeLength));
+              }
+              listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i));
+            } else if(branch === nextType) {
+              listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i+2));
+            } else {
+              // No match on this one, shift into the tree but not in the type array.
+              listeners = listeners.concat(searchListenerTree(handlers, type, tree[branch], i));
+            }
+          }
+        }
+        return listeners;
+      }
+
+      listeners = listeners.concat(searchListenerTree(handlers, type, tree[currentType], i+1));
+    }
+
+    xTree = tree['*'];
+    if (xTree) {
+      //
+      // If the listener tree will allow any match for this part,
+      // then recursively explore all branches of the tree
+      //
+      searchListenerTree(handlers, type, xTree, i+1);
+    }
+
+    xxTree = tree['**'];
+    if(xxTree) {
+      if(i < typeLength) {
+        if(xxTree._listeners) {
+          // If we have a listener on a '**', it will catch all, so add its handler.
+          searchListenerTree(handlers, type, xxTree, typeLength);
+        }
+
+        // Build arrays of matching next branches and others.
+        for(branch in xxTree) {
+          if(branch !== '_listeners' && xxTree.hasOwnProperty(branch)) {
+            if(branch === nextType) {
+              // We know the next element will match, so jump twice.
+              searchListenerTree(handlers, type, xxTree[branch], i+2);
+            } else if(branch === currentType) {
+              // Current node matches, move into the tree.
+              searchListenerTree(handlers, type, xxTree[branch], i+1);
+            } else {
+              isolatedBranch = {};
+              isolatedBranch[branch] = xxTree[branch];
+              searchListenerTree(handlers, type, { '**': isolatedBranch }, i+1);
+            }
+          }
+        }
+      } else if(xxTree._listeners) {
+        // We have reached the end and still on a '**'
+        searchListenerTree(handlers, type, xxTree, typeLength);
+      } else if(xxTree['*'] && xxTree['*']._listeners) {
+        searchListenerTree(handlers, type, xxTree['*'], typeLength);
+      }
+    }
+
+    return listeners;
+  }
+
+  function growListenerTree(type, listener) {
+
+    type = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+
+    //
+    // Looks for two consecutive '**', if so, don't add the event at all.
+    //
+    for(var i = 0, len = type.length; i+1 < len; i++) {
+      if(type[i] === '**' && type[i+1] === '**') {
+        return;
+      }
+    }
+
+    var tree = this.listenerTree;
+    var name = type.shift();
+
+    while (name !== undefined) {
+
+      if (!tree[name]) {
+        tree[name] = {};
+      }
+
+      tree = tree[name];
+
+      if (type.length === 0) {
+
+        if (!tree._listeners) {
+          tree._listeners = listener;
+        }
+        else {
+          if (typeof tree._listeners === 'function') {
+            tree._listeners = [tree._listeners];
+          }
+
+          tree._listeners.push(listener);
+
+          if (
+            !tree._listeners.warned &&
+            this._maxListeners > 0 &&
+            tree._listeners.length > this._maxListeners
+          ) {
+            tree._listeners.warned = true;
+            logPossibleMemoryLeak.call(this, tree._listeners.length, name);
+          }
+        }
+        return true;
+      }
+      name = type.shift();
+    }
+    return true;
+  }
+
+  // By default EventEmitters will print a warning if more than
+  // 10 listeners are added to it. This is a useful default which
+  // helps finding memory leaks.
+  //
+  // Obviously not all Emitters should be limited to 10. This function allows
+  // that to be increased. Set to zero for unlimited.
+
+  EventEmitter.prototype.delimiter = '.';
+
+  EventEmitter.prototype.setMaxListeners = function(n) {
+    if (n !== undefined) {
+      this._maxListeners = n;
+      if (!this._conf) this._conf = {};
+      this._conf.maxListeners = n;
+    }
+  };
+
+  EventEmitter.prototype.event = '';
+
+
+  EventEmitter.prototype.once = function(event, fn) {
+    return this._once(event, fn, false);
+  };
+
+  EventEmitter.prototype.prependOnceListener = function(event, fn) {
+    return this._once(event, fn, true);
+  };
+
+  EventEmitter.prototype._once = function(event, fn, prepend) {
+    this._many(event, 1, fn, prepend);
+    return this;
+  };
+
+  EventEmitter.prototype.many = function(event, ttl, fn) {
+    return this._many(event, ttl, fn, false);
+  }
+
+  EventEmitter.prototype.prependMany = function(event, ttl, fn) {
+    return this._many(event, ttl, fn, true);
+  }
+
+  EventEmitter.prototype._many = function(event, ttl, fn, prepend) {
+    var self = this;
+
+    if (typeof fn !== 'function') {
+      throw new Error('many only accepts instances of Function');
+    }
+
+    function listener() {
+      if (--ttl === 0) {
+        self.off(event, listener);
+      }
+      return fn.apply(this, arguments);
+    }
+
+    listener._origin = fn;
+
+    this._on(event, listener, prepend);
+
+    return self;
+  };
+
+  EventEmitter.prototype.emit = function() {
+
+    this._events || init.call(this);
+
+    var type = arguments[0];
+
+    if (type === 'newListener' && !this.newListener) {
+      if (!this._events.newListener) {
+        return false;
+      }
+    }
+
+    var al = arguments.length;
+    var args,l,i,j;
+    var handler;
+
+    if (this._all && this._all.length) {
+      handler = this._all.slice();
+      if (al > 3) {
+        args = new Array(al);
+        for (j = 0; j < al; j++) args[j] = arguments[j];
+      }
+
+      for (i = 0, l = handler.length; i < l; i++) {
+        this.event = type;
+        switch (al) {
+        case 1:
+          handler[i].call(this, type);
+          break;
+        case 2:
+          handler[i].call(this, type, arguments[1]);
+          break;
+        case 3:
+          handler[i].call(this, type, arguments[1], arguments[2]);
+          break;
+        default:
+          handler[i].apply(this, args);
+        }
+      }
+    }
+
+    if (this.wildcard) {
+      handler = [];
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+      searchListenerTree.call(this, handler, ns, this.listenerTree, 0);
     } else {
-      list.splice(position, 1);
+      handler = this._events[type];
+      if (typeof handler === 'function') {
+        this.event = type;
+        switch (al) {
+        case 1:
+          handler.call(this);
+          break;
+        case 2:
+          handler.call(this, arguments[1]);
+          break;
+        case 3:
+          handler.call(this, arguments[1], arguments[2]);
+          break;
+        default:
+          args = new Array(al - 1);
+          for (j = 1; j < al; j++) args[j - 1] = arguments[j];
+          handler.apply(this, args);
+        }
+        return true;
+      } else if (handler) {
+        // need to make copy of handlers because list can change in the middle
+        // of emit call
+        handler = handler.slice();
+      }
     }
 
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.removeAllListeners = function(type) {
-  var key, listeners;
-
-  if (!this._events)
-    return this;
-
-  // not listening for removeListener, no need to emit
-  if (!this._events.removeListener) {
-    if (arguments.length === 0)
-      this._events = {};
-    else if (this._events[type])
-      delete this._events[type];
-    return this;
-  }
-
-  // emit removeListener for all listeners on all events
-  if (arguments.length === 0) {
-    for (key in this._events) {
-      if (key === 'removeListener') continue;
-      this.removeAllListeners(key);
+    if (handler && handler.length) {
+      if (al > 3) {
+        args = new Array(al - 1);
+        for (j = 1; j < al; j++) args[j - 1] = arguments[j];
+      }
+      for (i = 0, l = handler.length; i < l; i++) {
+        this.event = type;
+        switch (al) {
+        case 1:
+          handler[i].call(this);
+          break;
+        case 2:
+          handler[i].call(this, arguments[1]);
+          break;
+        case 3:
+          handler[i].call(this, arguments[1], arguments[2]);
+          break;
+        default:
+          handler[i].apply(this, args);
+        }
+      }
+      return true;
+    } else if (!this._all && type === 'error') {
+      if (arguments[1] instanceof Error) {
+        throw arguments[1]; // Unhandled 'error' event
+      } else {
+        throw new Error("Uncaught, unspecified 'error' event.");
+      }
+      return false;
     }
-    this.removeAllListeners('removeListener');
-    this._events = {};
+
+    return !!this._all;
+  };
+
+  EventEmitter.prototype.emitAsync = function() {
+
+    this._events || init.call(this);
+
+    var type = arguments[0];
+
+    if (type === 'newListener' && !this.newListener) {
+        if (!this._events.newListener) { return Promise.resolve([false]); }
+    }
+
+    var promises= [];
+
+    var al = arguments.length;
+    var args,l,i,j;
+    var handler;
+
+    if (this._all) {
+      if (al > 3) {
+        args = new Array(al);
+        for (j = 1; j < al; j++) args[j] = arguments[j];
+      }
+      for (i = 0, l = this._all.length; i < l; i++) {
+        this.event = type;
+        switch (al) {
+        case 1:
+          promises.push(this._all[i].call(this, type));
+          break;
+        case 2:
+          promises.push(this._all[i].call(this, type, arguments[1]));
+          break;
+        case 3:
+          promises.push(this._all[i].call(this, type, arguments[1], arguments[2]));
+          break;
+        default:
+          promises.push(this._all[i].apply(this, args));
+        }
+      }
+    }
+
+    if (this.wildcard) {
+      handler = [];
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+      searchListenerTree.call(this, handler, ns, this.listenerTree, 0);
+    } else {
+      handler = this._events[type];
+    }
+
+    if (typeof handler === 'function') {
+      this.event = type;
+      switch (al) {
+      case 1:
+        promises.push(handler.call(this));
+        break;
+      case 2:
+        promises.push(handler.call(this, arguments[1]));
+        break;
+      case 3:
+        promises.push(handler.call(this, arguments[1], arguments[2]));
+        break;
+      default:
+        args = new Array(al - 1);
+        for (j = 1; j < al; j++) args[j - 1] = arguments[j];
+        promises.push(handler.apply(this, args));
+      }
+    } else if (handler && handler.length) {
+      handler = handler.slice();
+      if (al > 3) {
+        args = new Array(al - 1);
+        for (j = 1; j < al; j++) args[j - 1] = arguments[j];
+      }
+      for (i = 0, l = handler.length; i < l; i++) {
+        this.event = type;
+        switch (al) {
+        case 1:
+          promises.push(handler[i].call(this));
+          break;
+        case 2:
+          promises.push(handler[i].call(this, arguments[1]));
+          break;
+        case 3:
+          promises.push(handler[i].call(this, arguments[1], arguments[2]));
+          break;
+        default:
+          promises.push(handler[i].apply(this, args));
+        }
+      }
+    } else if (!this._all && type === 'error') {
+      if (arguments[1] instanceof Error) {
+        return Promise.reject(arguments[1]); // Unhandled 'error' event
+      } else {
+        return Promise.reject("Uncaught, unspecified 'error' event.");
+      }
+    }
+
+    return Promise.all(promises);
+  };
+
+  EventEmitter.prototype.on = function(type, listener) {
+    return this._on(type, listener, false);
+  };
+
+  EventEmitter.prototype.prependListener = function(type, listener) {
+    return this._on(type, listener, true);
+  };
+
+  EventEmitter.prototype.onAny = function(fn) {
+    return this._onAny(fn, false);
+  };
+
+  EventEmitter.prototype.prependAny = function(fn) {
+    return this._onAny(fn, true);
+  };
+
+  EventEmitter.prototype.addListener = EventEmitter.prototype.on;
+
+  EventEmitter.prototype._onAny = function(fn, prepend){
+    if (typeof fn !== 'function') {
+      throw new Error('onAny only accepts instances of Function');
+    }
+
+    if (!this._all) {
+      this._all = [];
+    }
+
+    // Add the function to the event listener collection.
+    if(prepend){
+      this._all.unshift(fn);
+    }else{
+      this._all.push(fn);
+    }
+
     return this;
   }
 
-  listeners = this._events[type];
+  EventEmitter.prototype._on = function(type, listener, prepend) {
+    if (typeof type === 'function') {
+      this._onAny(type, listener);
+      return this;
+    }
 
-  if (isFunction(listeners)) {
-    this.removeListener(type, listeners);
-  } else if (listeners) {
-    // LIFO order
-    while (listeners.length)
-      this.removeListener(type, listeners[listeners.length - 1]);
+    if (typeof listener !== 'function') {
+      throw new Error('on only accepts instances of Function');
+    }
+    this._events || init.call(this);
+
+    // To avoid recursion in the case that type == "newListeners"! Before
+    // adding it to the listeners, first emit "newListeners".
+    this.emit('newListener', type, listener);
+
+    if (this.wildcard) {
+      growListenerTree.call(this, type, listener);
+      return this;
+    }
+
+    if (!this._events[type]) {
+      // Optimize the case of one listener. Don't need the extra array object.
+      this._events[type] = listener;
+    }
+    else {
+      if (typeof this._events[type] === 'function') {
+        // Change to array.
+        this._events[type] = [this._events[type]];
+      }
+
+      // If we've already got an array, just add
+      if(prepend){
+        this._events[type].unshift(listener);
+      }else{
+        this._events[type].push(listener);
+      }
+
+      // Check for listener leak
+      if (
+        !this._events[type].warned &&
+        this._maxListeners > 0 &&
+        this._events[type].length > this._maxListeners
+      ) {
+        this._events[type].warned = true;
+        logPossibleMemoryLeak.call(this, this._events[type].length, type);
+      }
+    }
+
+    return this;
   }
-  delete this._events[type];
 
-  return this;
-};
+  EventEmitter.prototype.off = function(type, listener) {
+    if (typeof listener !== 'function') {
+      throw new Error('removeListener only takes instances of Function');
+    }
 
-EventEmitter.prototype.listeners = function(type) {
-  var ret;
-  if (!this._events || !this._events[type])
-    ret = [];
-  else if (isFunction(this._events[type]))
-    ret = [this._events[type]];
-  else
-    ret = this._events[type].slice();
-  return ret;
-};
+    var handlers,leafs=[];
 
-EventEmitter.prototype.listenerCount = function(type) {
-  if (this._events) {
-    var evlistener = this._events[type];
+    if(this.wildcard) {
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+      leafs = searchListenerTree.call(this, null, ns, this.listenerTree, 0);
+    }
+    else {
+      // does not use listeners(), so no side effect of creating _events[type]
+      if (!this._events[type]) return this;
+      handlers = this._events[type];
+      leafs.push({_listeners:handlers});
+    }
 
-    if (isFunction(evlistener))
-      return 1;
-    else if (evlistener)
-      return evlistener.length;
+    for (var iLeaf=0; iLeaf<leafs.length; iLeaf++) {
+      var leaf = leafs[iLeaf];
+      handlers = leaf._listeners;
+      if (isArray(handlers)) {
+
+        var position = -1;
+
+        for (var i = 0, length = handlers.length; i < length; i++) {
+          if (handlers[i] === listener ||
+            (handlers[i].listener && handlers[i].listener === listener) ||
+            (handlers[i]._origin && handlers[i]._origin === listener)) {
+            position = i;
+            break;
+          }
+        }
+
+        if (position < 0) {
+          continue;
+        }
+
+        if(this.wildcard) {
+          leaf._listeners.splice(position, 1);
+        }
+        else {
+          this._events[type].splice(position, 1);
+        }
+
+        if (handlers.length === 0) {
+          if(this.wildcard) {
+            delete leaf._listeners;
+          }
+          else {
+            delete this._events[type];
+          }
+        }
+
+        this.emit("removeListener", type, listener);
+
+        return this;
+      }
+      else if (handlers === listener ||
+        (handlers.listener && handlers.listener === listener) ||
+        (handlers._origin && handlers._origin === listener)) {
+        if(this.wildcard) {
+          delete leaf._listeners;
+        }
+        else {
+          delete this._events[type];
+        }
+
+        this.emit("removeListener", type, listener);
+      }
+    }
+
+    function recursivelyGarbageCollect(root) {
+      if (root === undefined) {
+        return;
+      }
+      var keys = Object.keys(root);
+      for (var i in keys) {
+        var key = keys[i];
+        var obj = root[key];
+        if ((obj instanceof Function) || (typeof obj !== "object") || (obj === null))
+          continue;
+        if (Object.keys(obj).length > 0) {
+          recursivelyGarbageCollect(root[key]);
+        }
+        if (Object.keys(obj).length === 0) {
+          delete root[key];
+        }
+      }
+    }
+    recursivelyGarbageCollect(this.listenerTree);
+
+    return this;
+  };
+
+  EventEmitter.prototype.offAny = function(fn) {
+    var i = 0, l = 0, fns;
+    if (fn && this._all && this._all.length > 0) {
+      fns = this._all;
+      for(i = 0, l = fns.length; i < l; i++) {
+        if(fn === fns[i]) {
+          fns.splice(i, 1);
+          this.emit("removeListenerAny", fn);
+          return this;
+        }
+      }
+    } else {
+      fns = this._all;
+      for(i = 0, l = fns.length; i < l; i++)
+        this.emit("removeListenerAny", fns[i]);
+      this._all = [];
+    }
+    return this;
+  };
+
+  EventEmitter.prototype.removeListener = EventEmitter.prototype.off;
+
+  EventEmitter.prototype.removeAllListeners = function(type) {
+    if (arguments.length === 0) {
+      !this._events || init.call(this);
+      return this;
+    }
+
+    if (this.wildcard) {
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+      var leafs = searchListenerTree.call(this, null, ns, this.listenerTree, 0);
+
+      for (var iLeaf=0; iLeaf<leafs.length; iLeaf++) {
+        var leaf = leafs[iLeaf];
+        leaf._listeners = null;
+      }
+    }
+    else if (this._events) {
+      this._events[type] = null;
+    }
+    return this;
+  };
+
+  EventEmitter.prototype.listeners = function(type) {
+    if (this.wildcard) {
+      var handlers = [];
+      var ns = typeof type === 'string' ? type.split(this.delimiter) : type.slice();
+      searchListenerTree.call(this, handlers, ns, this.listenerTree, 0);
+      return handlers;
+    }
+
+    this._events || init.call(this);
+
+    if (!this._events[type]) this._events[type] = [];
+    if (!isArray(this._events[type])) {
+      this._events[type] = [this._events[type]];
+    }
+    return this._events[type];
+  };
+
+  EventEmitter.prototype.eventNames = function(){
+    return Object.keys(this._events);
   }
-  return 0;
+
+  EventEmitter.prototype.listenerCount = function(type) {
+    return this.listeners(type).length;
+  };
+
+  EventEmitter.prototype.listenersAny = function() {
+
+    if(this._all) {
+      return this._all;
+    }
+    else {
+      return [];
+    }
+
+  };
+
+  if (typeof define === 'function' && define.amd) {
+     // AMD. Register as an anonymous module.
+    define(function() {
+      return EventEmitter;
+    });
+  } else if (typeof exports === 'object') {
+    // CommonJS
+    module.exports = EventEmitter;
+  }
+  else {
+    // Browser global.
+    window.EventEmitter2 = EventEmitter;
+  }
+}();
+
+}).call(this,require('_process'))
+},{"_process":16}],16:[function(require,module,exports){
+// shim for using process in browser
+var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
+    draining = false;
+    if (currentQueue.length) {
+        queue = currentQueue.concat(queue);
+    } else {
+        queueIndex = -1;
+    }
+    if (queue.length) {
+        drainQueue();
+    }
+}
+
+function drainQueue() {
+    if (draining) {
+        return;
+    }
+    var timeout = runTimeout(cleanUpNextTick);
+    draining = true;
+
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        while (++queueIndex < len) {
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
+        }
+        queueIndex = -1;
+        len = queue.length;
+    }
+    currentQueue = null;
+    draining = false;
+    runClearTimeout(timeout);
+}
+
+process.nextTick = function (fun) {
+    var args = new Array(arguments.length - 1);
+    if (arguments.length > 1) {
+        for (var i = 1; i < arguments.length; i++) {
+            args[i - 1] = arguments[i];
+        }
+    }
+    queue.push(new Item(fun, args));
+    if (queue.length === 1 && !draining) {
+        runTimeout(drainQueue);
+    }
 };
 
-EventEmitter.listenerCount = function(emitter, type) {
-  return emitter.listenerCount(type);
+// v8 likes predictible objects
+function Item(fun, array) {
+    this.fun = fun;
+    this.array = array;
+}
+Item.prototype.run = function () {
+    this.fun.apply(null, this.array);
+};
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
+process.versions = {};
+
+function noop() {}
+
+process.on = noop;
+process.addListener = noop;
+process.once = noop;
+process.off = noop;
+process.removeListener = noop;
+process.removeAllListeners = noop;
+process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
 };
 
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+process.umask = function() { return 0; };
 
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-
-function isUndefined(arg) {
-  return arg === void 0;
-}
-
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 'use strict';
 
 var replace = String.prototype.replace;
@@ -5331,7 +6725,7 @@ module.exports = {
     RFC3986: 'RFC3986'
 };
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 var stringify = require('./stringify');
@@ -5344,7 +6738,7 @@ module.exports = {
     stringify: stringify
 };
 
-},{"./formats":16,"./parse":18,"./stringify":19}],18:[function(require,module,exports){
+},{"./formats":17,"./parse":19,"./stringify":20}],19:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -5513,7 +6907,7 @@ module.exports = function (str, opts) {
     return utils.compact(obj);
 };
 
-},{"./utils":20}],19:[function(require,module,exports){
+},{"./utils":21}],20:[function(require,module,exports){
 'use strict';
 
 var utils = require('./utils');
@@ -5722,7 +7116,7 @@ module.exports = function (object, opts) {
     return keys.join(delimiter);
 };
 
-},{"./formats":16,"./utils":20}],20:[function(require,module,exports){
+},{"./formats":17,"./utils":21}],21:[function(require,module,exports){
 'use strict';
 
 var has = Object.prototype.hasOwnProperty;
@@ -5904,6 +7298,21 @@ exports.isBuffer = function (obj) {
     }
 
     return !!(obj.constructor && obj.constructor.isBuffer && obj.constructor.isBuffer(obj));
+};
+
+},{}],22:[function(require,module,exports){
+'use strict';
+module.exports = function (min, max) {
+	if (max === undefined) {
+		max = min;
+		min = 0;
+	}
+
+	if (typeof min !== 'number' || typeof max !== 'number') {
+		throw new TypeError('Expected all arguments to be numbers');
+	}
+
+	return Math.floor(Math.random() * (max - min + 1) + min);
 };
 
 },{}]},{},[1]);
