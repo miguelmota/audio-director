@@ -1,6 +1,6 @@
 # audio-director
 
-> Mange audio playback
+> Manage browser audio sources and playback
 
 # Install
 

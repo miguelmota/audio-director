@@ -1,7 +1,7 @@
 {
   "name": "audio-director",
-  "version": "0.0.14",
-  "description": "Manage audio playback",
+  "version": "0.0.15",
+  "description": "Manage browser audio sources and playback",
   "main": "./index.js",
   "scripts": {
     "test": "./node_modules/tape/bin/tape test/*.js",
