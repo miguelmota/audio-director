@@ -44,10 +44,935 @@
 
     <section>
         <article><h1>audio-director</h1><blockquote>
-<p>Mange audio playback</p>
+<p>Manage browser audio sources and playback</p>
 </blockquote>
-<h1>Documentation</h1><p><a href="https://lab.miguelmota.com/audio-director/docs">https://lab.miguelmota.com/audio-director</a></p>
-<h1>Install</h1><pre class="prettyprint source lang-bash"><code>npm install audio-director</code></pre><h1>Usage</h1><p>Standard audio player</p>
+<h1>Install</h1><pre class="prettyprint source lang-bash"><code>npm install audio-director</code></pre><h1>Documentation</h1><p><a href="https://lab.miguelmota.com/audio-director/docs">https://lab.miguelmota.com/audio-director</a></p>
+<h2>Classes</h2><dl>
+<dt><a href="#Player">Player</a></dt>
+<dd></dd>
+</dl>
+
+<h2>Objects</h2><dl>
+<dt><a href="#Player">Player</a> : <code>object</code></dt>
+<dd><p>Class reprensenting a Player</p>
+</dd>
+</dl>
+
+<p><a name="Player"></a></p>
+<h2>Player</h2><p><strong>Kind</strong>: global class</p>
+<ul>
+<li><a href="#Player">Player</a><ul>
+<li><a href="#new_Player_new">new Player()</a></li>
+<li><em>instance</em><ul>
+<li><a href="#Player+on">.on(eventName, callback)</a></li>
+<li><a href="#Player+getCurrentUrl">.getCurrentUrl()</a> ⇒ <code>String</code></li>
+<li><a href="#Player+emptyQueue">.emptyQueue()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+enqueue">.enqueue(source)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+deque">.deque()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+play">.play()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+playQueue">.playQueue()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+stop">.stop()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+pause">.pause()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+replay">.replay()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+playBlob">.playBlob(blob)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+playAudioBuffer">.playAudioBuffer(audioBuffer)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getCurrentAudioBuffer">.getCurrentAudioBuffer()</a> ⇒ <code>AudioBuffer</code></li>
+<li><a href="#Player+playUrl">.playUrl(url)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getAudioDataFromUrl">.getAudioDataFromUrl(url)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+next">.next()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+previous">.previous()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+setRandom">.setRandom(enabled)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+setRepeat">.setRepeat(enabled)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+hasNext">.hasNext()</a> ⇒ <code>Boolean</code></li>
+<li><a href="#Player+hasPrevious">.hasPrevious()</a> ⇒ <code>Boolean</code></li>
+<li><a href="#Player+setPlaybackRate">.setPlaybackRate(playbackRate)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getPlaybackRate">.getPlaybackRate()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+setVolume">.setVolume(volume)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getVolume">.getVolume()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+setMaxVolume">.setMaxVolume(maxVolume)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getMaxVolume">.getMaxVolume()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+setMuted">.setMuted(enabled)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getCurrentTime">.getCurrentTime()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+seekTo">.seekTo(seconds)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getDuration">.getDuration()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+getCurrentState">.getCurrentState()</a> ⇒ <code>String</code></li>
+</ul>
+</li>
+<li><em>static</em><ul>
+<li><a href="#Player.EventTypes">.EventTypes</a> ⇒ <code>Object</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><a name="new_Player_new"></a></p>
+<h3>new Player()</h3><p>Create a Player</p>
+<p><a name="Player+on"></a></p>
+<h3>player.on(eventName, callback)</h3><p>Listen for player events</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>eventName</td>
+<td><code>String</code></td>
+<td>name of even</td>
+</tr>
+<tr>
+<td>callback</td>
+<td><code>function</code></td>
+<td>called when the event occurs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.on(Player.EventTypes.PLAY, () => {
+
+})</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.on(Player.EventTypes.PLAYBACK_RATE, () => {
+
+})</code></pre><p><a name="Player+getCurrentUrl"></a></p>
+<h3>player.getCurrentUrl() ⇒ <code>String</code></h3><p>Get currently playing audio source url</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = player.getCurrentUrl()</code></pre><p><a name="Player+emptyQueue"></a></p>
+<h3>player.emptyQueue() ⇒ <code>Promise</code></h3><p>Empties queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.emptyQueue()</code></pre><p><a name="Player+enqueue"></a></p>
+<h3>player.enqueue(source) ⇒ <code>Promise</code></h3><p>Enqueues an audio source to play</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>source</td>
+<td><code>DataView</code> \</td>
+<td><code>Uint8Array</code> \</td>
+<td><code>AudioBuffer</code> \</td>
+<td><code>ArrayBuffer</code> \</td>
+<td><code>String</code></td>
+<td>an audio source to play</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = 'https://example.com/audio.mp3'
+
+player.enqueue(url)</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.enqueue(audioBuffer)</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.enqueue(arrayBuffer)</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.enqueue(blob)</code></pre><p><a name="Player+deque"></a></p>
+<h3>player.deque() ⇒ <code>Promise</code></h3><p>Deques an audio source from queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.deque()</code></pre><p><a name="Player+play"></a></p>
+<h3>player.play() ⇒ <code>Promise</code></h3><p>Plays current audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.play()</code></pre><p><a name="Player+playQueue"></a></p>
+<h3>player.playQueue() ⇒ <code>Promise</code></h3><p>Start playing audio sources in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.playQueue()</code></pre><p><a name="Player+stop"></a></p>
+<h3>player.stop() ⇒ <code>Promise</code></h3><p>Stop playing current audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.stop()</code></pre><p><a name="Player+pause"></a></p>
+<h3>player.pause() ⇒ <code>Promise</code></h3><p>Pause playing current audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.pause()</code></pre><p><a name="Player+replay"></a></p>
+<h3>player.replay() ⇒ <code>Promise</code></h3><p>Replay current audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.replay()</code></pre><p><a name="Player+playBlob"></a></p>
+<h3>player.playBlob(blob) ⇒ <code>Promise</code></h3><p>Play an audio Blob</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>blob</td>
+<td><code>Blob</code></td>
+<td>audio blob</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const blob = new Blob([dataView], {
+  type: 'audio/wav'
+})
+
+player.playBlob(blob)</code></pre><p><a name="Player+playAudioBuffer"></a></p>
+<h3>player.playAudioBuffer(audioBuffer) ⇒ <code>Promise</code></h3><p>Play an AudioBuffer</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>audioBuffer</td>
+<td><code>AudioBuffer</code></td>
+<td>an AudioBuffer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.playAudioBuffer(audioBuffer)</code></pre><p><a name="Player+getCurrentAudioBuffer"></a></p>
+<h3>player.getCurrentAudioBuffer() ⇒ <code>AudioBuffer</code></h3><p>Return current audio buffer playing</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getCurrentAudioBuffer()</code></pre><p><a name="Player+playUrl"></a></p>
+<h3>player.playUrl(url) ⇒ <code>Promise</code></h3><p>Play an MP3 url</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>url</td>
+<td><code>String</code></td>
+<td>MP3 url</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = 'https://example.com/audio.mp3'
+
+player.playUrl(url)</code></pre><p><a name="Player+getAudioDataFromUrl"></a></p>
+<h3>player.getAudioDataFromUrl(url) ⇒ <code>Promise</code></h3><p>Get the binary audio data from an audio source url in ArrayBuffer form</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Promise</code> - arrayBuffer</p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>url</td>
+<td><code>String</code></td>
+<td>audio source url</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = 'https://example.com/audio.mp3'
+
+player.getAudioDataFromUrl()
+.then(arrayBuffer => {
+
+})</code></pre><p><a name="Player+next"></a></p>
+<h3>player.next() ⇒ <code>Promise</code></h3><p>Play next audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.next()</code></pre><p><a name="Player+previous"></a></p>
+<h3>player.previous() ⇒ <code>Promise</code></h3><p>Play previous audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.previous()</code></pre><p><a name="Player+setRandom"></a></p>
+<h3>player.setRandom(enabled) ⇒ <code>Promise</code></h3><p>Enable to disable random playback</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enabled</td>
+<td><code>Boolean</code></td>
+<td>boolean to enable random playback</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setRandom(true)</code></pre><p><a name="Player+setRepeat"></a></p>
+<h3>player.setRepeat(enabled) ⇒ <code>Promise</code></h3><p>Enable to disable repeat mode. Repeat mode replays the audio sources once the entire queue has finished playing.</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enabled</td>
+<td><code>Boolean</code></td>
+<td>boolean to enable repeat mode</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setRepeat(true)</code></pre><p><a name="Player+hasNext"></a></p>
+<h3>player.hasNext() ⇒ <code>Boolean</code></h3><p>Return true if there's an audio source to play next in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Boolean</code> - hasNext
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const hasNext = player.hasNext()</code></pre><p><a name="Player+hasPrevious"></a></p>
+<h3>player.hasPrevious() ⇒ <code>Boolean</code></h3><p>Return true if there's a previous audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Boolean</code> - hasPrevious
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const hasPrevious = player.hasPrevious()</code></pre><p><a name="Player+setPlaybackRate"></a></p>
+<h3>player.setPlaybackRate(playbackRate) ⇒ <code>Promise</code></h3><p>Set the plaback rate speed, range 0.75-2</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>playbackRate</td>
+<td><code>Number</code></td>
+<td>new playback rate</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setPlaybackRate(2)</code></pre><p><a name="Player+getPlaybackRate"></a></p>
+<h3>player.getPlaybackRate() ⇒ <code>Number</code></h3><p>Get the current plaback rate speed</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - playback rate speed
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const playbackRate = player.getPlaybackRate()</code></pre><p><a name="Player+setVolume"></a></p>
+<h3>player.setVolume(volume) ⇒ <code>Promise</code></h3><p>Set volume, range 0-1</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>volume</td>
+<td><code>Number</code></td>
+<td>volume value</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setVolume(0.9)</code></pre><p><a name="Player+getVolume"></a></p>
+<h3>player.getVolume() ⇒ <code>Number</code></h3><p>Get current volume value</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - volume - current volume value
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getVolume()</code></pre><p><a name="Player+setMaxVolume"></a></p>
+<h3>player.setMaxVolume(maxVolume) ⇒ <code>Promise</code></h3><p>Set the maximum volume limit. For example if max volume is set to 0.6, then when volume is scaled from 0-0.6, meaning that volume level at 1 will play at 0.6</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>maxVolume</td>
+<td><code>Number</code></td>
+<td>max volume, range 0-1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setMaxVolume(0.8)</code></pre><p><a name="Player+getMaxVolume"></a></p>
+<h3>player.getMaxVolume() ⇒ <code>Number</code></h3><p>Get max volume value</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - maxVolume - max volume value
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getMaxVolume()</code></pre><p><a name="Player+setMuted"></a></p>
+<h3>player.setMuted(enabled) ⇒ <code>Promise</code></h3><p>Set volume level to muted</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enabled</td>
+<td><code>Boolean</code></td>
+<td>boolean to enable mute</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setMuted(true)</code></pre><p><a name="Player+getCurrentTime"></a></p>
+<h3>player.getCurrentTime() ⇒ <code>Number</code></h3><p>Return elapsed time in seconds since the audio source started playing</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - time - current time
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getCurrentTime()</code></pre><p><a name="Player+seekTo"></a></p>
+<h3>player.seekTo(seconds) ⇒ <code>Promise</code></h3><p>Seek to a specified time in audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>seconds</td>
+<td><code>Number</code></td>
+<td>number of seconds to seek to</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const seconds = 45
+
+player.seekTo(seconds)</code></pre><p><a name="Player+getDuration"></a></p>
+<h3>player.getDuration() ⇒ <code>Number</code></h3><p>Get duration of audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - duration - duration of audio source
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getDuration()</code></pre><p><a name="Player+getCurrentState"></a></p>
+<h3>player.getCurrentState() ⇒ <code>String</code></h3><p>Get current state of player</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>String</code> - - current state
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const currentState = player.getCurrentState()
+
+console.log(currentState) // 'playing'</code></pre><p><a name="Player.EventTypes"></a></p>
+<h3>Player.EventTypes ⇒ <code>Object</code></h3><p>Return event types</p>
+<p><strong>Kind</strong>: static property of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Object</code> - eventTypes - all player event types
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const EventTypes = Player.EventTypes
+
+{
+      LOG: 'log',
+      ERROR: 'error',
+      READY: 'ready',
+      PLAY: 'play',
+      REPLAY: 'replay',
+      PAUSE: 'pause',
+      STOP: 'pause',
+      NEXT: 'next',
+      PREVIOUS: 'previous',
+      RANDOM: 'random',
+      REPEAT: 'repeat',
+      PLAYBACK_RATE: 'playbackRate',
+      VOLUME: 'volume',
+      MAX_VOLUME: 'maxVolume',
+      MUTED: 'muted',
+      ENDED: 'ended',
+      ENQUEUE: 'enqueue',
+      DEQUE: 'deque',
+      EMPTY_QUEUE: 'emptyQueue',
+      STATE_CHANGE: 'stateChange'
+}</code></pre><p><a name="Player"></a></p>
+<h2>Player : <code>object</code></h2><p>Class reprensenting a Player</p>
+<p><strong>Kind</strong>: global namespace
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const player = new Player()</code></pre><ul>
+<li><a href="#Player">Player</a> : <code>object</code><ul>
+<li><a href="#new_Player_new">new Player()</a></li>
+<li><em>instance</em><ul>
+<li><a href="#Player+on">.on(eventName, callback)</a></li>
+<li><a href="#Player+getCurrentUrl">.getCurrentUrl()</a> ⇒ <code>String</code></li>
+<li><a href="#Player+emptyQueue">.emptyQueue()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+enqueue">.enqueue(source)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+deque">.deque()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+play">.play()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+playQueue">.playQueue()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+stop">.stop()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+pause">.pause()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+replay">.replay()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+playBlob">.playBlob(blob)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+playAudioBuffer">.playAudioBuffer(audioBuffer)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getCurrentAudioBuffer">.getCurrentAudioBuffer()</a> ⇒ <code>AudioBuffer</code></li>
+<li><a href="#Player+playUrl">.playUrl(url)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getAudioDataFromUrl">.getAudioDataFromUrl(url)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+next">.next()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+previous">.previous()</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+setRandom">.setRandom(enabled)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+setRepeat">.setRepeat(enabled)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+hasNext">.hasNext()</a> ⇒ <code>Boolean</code></li>
+<li><a href="#Player+hasPrevious">.hasPrevious()</a> ⇒ <code>Boolean</code></li>
+<li><a href="#Player+setPlaybackRate">.setPlaybackRate(playbackRate)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getPlaybackRate">.getPlaybackRate()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+setVolume">.setVolume(volume)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getVolume">.getVolume()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+setMaxVolume">.setMaxVolume(maxVolume)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getMaxVolume">.getMaxVolume()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+setMuted">.setMuted(enabled)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getCurrentTime">.getCurrentTime()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+seekTo">.seekTo(seconds)</a> ⇒ <code>Promise</code></li>
+<li><a href="#Player+getDuration">.getDuration()</a> ⇒ <code>Number</code></li>
+<li><a href="#Player+getCurrentState">.getCurrentState()</a> ⇒ <code>String</code></li>
+</ul>
+</li>
+<li><em>static</em><ul>
+<li><a href="#Player.EventTypes">.EventTypes</a> ⇒ <code>Object</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><a name="new_Player_new"></a></p>
+<h3>new Player()</h3><p>Create a Player</p>
+<p><a name="Player+on"></a></p>
+<h3>player.on(eventName, callback)</h3><p>Listen for player events</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>eventName</td>
+<td><code>String</code></td>
+<td>name of even</td>
+</tr>
+<tr>
+<td>callback</td>
+<td><code>function</code></td>
+<td>called when the event occurs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.on(Player.EventTypes.PLAY, () => {
+
+})</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.on(Player.EventTypes.PLAYBACK_RATE, () => {
+
+})</code></pre><p><a name="Player+getCurrentUrl"></a></p>
+<h3>player.getCurrentUrl() ⇒ <code>String</code></h3><p>Get currently playing audio source url</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = player.getCurrentUrl()</code></pre><p><a name="Player+emptyQueue"></a></p>
+<h3>player.emptyQueue() ⇒ <code>Promise</code></h3><p>Empties queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.emptyQueue()</code></pre><p><a name="Player+enqueue"></a></p>
+<h3>player.enqueue(source) ⇒ <code>Promise</code></h3><p>Enqueues an audio source to play</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>source</td>
+<td><code>DataView</code> \</td>
+<td><code>Uint8Array</code> \</td>
+<td><code>AudioBuffer</code> \</td>
+<td><code>ArrayBuffer</code> \</td>
+<td><code>String</code></td>
+<td>an audio source to play</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = 'https://example.com/audio.mp3'
+
+player.enqueue(url)</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.enqueue(audioBuffer)</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.enqueue(arrayBuffer)</code></pre><p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.enqueue(blob)</code></pre><p><a name="Player+deque"></a></p>
+<h3>player.deque() ⇒ <code>Promise</code></h3><p>Deques an audio source from queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.deque()</code></pre><p><a name="Player+play"></a></p>
+<h3>player.play() ⇒ <code>Promise</code></h3><p>Plays current audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.play()</code></pre><p><a name="Player+playQueue"></a></p>
+<h3>player.playQueue() ⇒ <code>Promise</code></h3><p>Start playing audio sources in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.playQueue()</code></pre><p><a name="Player+stop"></a></p>
+<h3>player.stop() ⇒ <code>Promise</code></h3><p>Stop playing current audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.stop()</code></pre><p><a name="Player+pause"></a></p>
+<h3>player.pause() ⇒ <code>Promise</code></h3><p>Pause playing current audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.pause()</code></pre><p><a name="Player+replay"></a></p>
+<h3>player.replay() ⇒ <code>Promise</code></h3><p>Replay current audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.replay()</code></pre><p><a name="Player+playBlob"></a></p>
+<h3>player.playBlob(blob) ⇒ <code>Promise</code></h3><p>Play an audio Blob</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>blob</td>
+<td><code>Blob</code></td>
+<td>audio blob</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const blob = new Blob([dataView], {
+  type: 'audio/wav'
+})
+
+player.playBlob(blob)</code></pre><p><a name="Player+playAudioBuffer"></a></p>
+<h3>player.playAudioBuffer(audioBuffer) ⇒ <code>Promise</code></h3><p>Play an AudioBuffer</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>audioBuffer</td>
+<td><code>AudioBuffer</code></td>
+<td>an AudioBuffer</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.playAudioBuffer(audioBuffer)</code></pre><p><a name="Player+getCurrentAudioBuffer"></a></p>
+<h3>player.getCurrentAudioBuffer() ⇒ <code>AudioBuffer</code></h3><p>Return current audio buffer playing</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getCurrentAudioBuffer()</code></pre><p><a name="Player+playUrl"></a></p>
+<h3>player.playUrl(url) ⇒ <code>Promise</code></h3><p>Play an MP3 url</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>url</td>
+<td><code>String</code></td>
+<td>MP3 url</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = 'https://example.com/audio.mp3'
+
+player.playUrl(url)</code></pre><p><a name="Player+getAudioDataFromUrl"></a></p>
+<h3>player.getAudioDataFromUrl(url) ⇒ <code>Promise</code></h3><p>Get the binary audio data from an audio source url in ArrayBuffer form</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Promise</code> - arrayBuffer</p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>url</td>
+<td><code>String</code></td>
+<td>audio source url</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const url = 'https://example.com/audio.mp3'
+
+player.getAudioDataFromUrl()
+.then(arrayBuffer => {
+
+})</code></pre><p><a name="Player+next"></a></p>
+<h3>player.next() ⇒ <code>Promise</code></h3><p>Play next audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.next()</code></pre><p><a name="Player+previous"></a></p>
+<h3>player.previous() ⇒ <code>Promise</code></h3><p>Play previous audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.previous()</code></pre><p><a name="Player+setRandom"></a></p>
+<h3>player.setRandom(enabled) ⇒ <code>Promise</code></h3><p>Enable to disable random playback</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enabled</td>
+<td><code>Boolean</code></td>
+<td>boolean to enable random playback</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setRandom(true)</code></pre><p><a name="Player+setRepeat"></a></p>
+<h3>player.setRepeat(enabled) ⇒ <code>Promise</code></h3><p>Enable to disable repeat mode. Repeat mode replays the audio sources once the entire queue has finished playing.</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enabled</td>
+<td><code>Boolean</code></td>
+<td>boolean to enable repeat mode</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setRepeat(true)</code></pre><p><a name="Player+hasNext"></a></p>
+<h3>player.hasNext() ⇒ <code>Boolean</code></h3><p>Return true if there's an audio source to play next in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Boolean</code> - hasNext
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const hasNext = player.hasNext()</code></pre><p><a name="Player+hasPrevious"></a></p>
+<h3>player.hasPrevious() ⇒ <code>Boolean</code></h3><p>Return true if there's a previous audio source in queue</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Boolean</code> - hasPrevious
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const hasPrevious = player.hasPrevious()</code></pre><p><a name="Player+setPlaybackRate"></a></p>
+<h3>player.setPlaybackRate(playbackRate) ⇒ <code>Promise</code></h3><p>Set the plaback rate speed, range 0.75-2</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>playbackRate</td>
+<td><code>Number</code></td>
+<td>new playback rate</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setPlaybackRate(2)</code></pre><p><a name="Player+getPlaybackRate"></a></p>
+<h3>player.getPlaybackRate() ⇒ <code>Number</code></h3><p>Get the current plaback rate speed</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - playback rate speed
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const playbackRate = player.getPlaybackRate()</code></pre><p><a name="Player+setVolume"></a></p>
+<h3>player.setVolume(volume) ⇒ <code>Promise</code></h3><p>Set volume, range 0-1</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>volume</td>
+<td><code>Number</code></td>
+<td>volume value</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setVolume(0.9)</code></pre><p><a name="Player+getVolume"></a></p>
+<h3>player.getVolume() ⇒ <code>Number</code></h3><p>Get current volume value</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - volume - current volume value
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getVolume()</code></pre><p><a name="Player+setMaxVolume"></a></p>
+<h3>player.setMaxVolume(maxVolume) ⇒ <code>Promise</code></h3><p>Set the maximum volume limit. For example if max volume is set to 0.6, then when volume is scaled from 0-0.6, meaning that volume level at 1 will play at 0.6</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>maxVolume</td>
+<td><code>Number</code></td>
+<td>max volume, range 0-1</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setMaxVolume(0.8)</code></pre><p><a name="Player+getMaxVolume"></a></p>
+<h3>player.getMaxVolume() ⇒ <code>Number</code></h3><p>Get max volume value</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - maxVolume - max volume value
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getMaxVolume()</code></pre><p><a name="Player+setMuted"></a></p>
+<h3>player.setMuted(enabled) ⇒ <code>Promise</code></h3><p>Set volume level to muted</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enabled</td>
+<td><code>Boolean</code></td>
+<td>boolean to enable mute</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.setMuted(true)</code></pre><p><a name="Player+getCurrentTime"></a></p>
+<h3>player.getCurrentTime() ⇒ <code>Number</code></h3><p>Return elapsed time in seconds since the audio source started playing</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - time - current time
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getCurrentTime()</code></pre><p><a name="Player+seekTo"></a></p>
+<h3>player.seekTo(seconds) ⇒ <code>Promise</code></h3><p>Seek to a specified time in audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a></p>
+<table>
+<thead>
+<tr>
+<th>Param</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>seconds</td>
+<td><code>Number</code></td>
+<td>number of seconds to seek to</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const seconds = 45
+
+player.seekTo(seconds)</code></pre><p><a name="Player+getDuration"></a></p>
+<h3>player.getDuration() ⇒ <code>Number</code></h3><p>Get duration of audio source</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Number</code> - duration - duration of audio source
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>player.getDuration()</code></pre><p><a name="Player+getCurrentState"></a></p>
+<h3>player.getCurrentState() ⇒ <code>String</code></h3><p>Get current state of player</p>
+<p><strong>Kind</strong>: instance method of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>String</code> - - current state
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const currentState = player.getCurrentState()
+
+console.log(currentState) // 'PLAYING'</code></pre><p><a name="Player.EventTypes"></a></p>
+<h3>Player.EventTypes ⇒ <code>Object</code></h3><p>Return event types</p>
+<p><strong>Kind</strong>: static property of <a href="#Player"><code>Player</code></a>
+<strong>Returns</strong>: <code>Object</code> - eventTypes - all player event types
+<strong>Example</strong></p>
+<pre class="prettyprint source lang-js"><code>const EventTypes = Player.EventTypes
+
+{
+      LOG: 'log',
+      ERROR: 'error',
+      READY: 'ready',
+      PLAY: 'play',
+      REPLAY: 'replay',
+      PAUSE: 'pause',
+      STOP: 'pause',
+      NEXT: 'next',
+      PREVIOUS: 'previous',
+      RANDOM: 'random',
+      REPEAT: 'repeat',
+      PLAYBACK_RATE: 'playbackRate',
+      VOLUME: 'volume',
+      MAX_VOLUME: 'maxVolume',
+      MUTED: 'muted',
+      ENDED: 'ended',
+      ENQUEUE: 'enqueue',
+      DEQUE: 'deque',
+      EMPTY_QUEUE: 'emptyQueue',
+      STATE_CHANGE: 'stateChange'
+}</code></pre><h1>Usage</h1><p>Standard audio player</p>
 <pre class="prettyprint source lang-javascript"><code>const {Player} = require('audio-director')
 const player = new Player()
 
@@ -83,7 +1008,7 @@ player.enqueue(url)
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Sun Jul 16 2017 17:07:52 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Sun Aug 06 2017 14:14:17 GMT-0700 (PDT)
 </footer>
 
 <script> prettyPrint(); </script>

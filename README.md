@@ -66,6 +66,7 @@ npm install audio-director
         * [.getCurrentTime()](#Player+getCurrentTime) ⇒ <code>Number</code>
         * [.seekTo(seconds)](#Player+seekTo) ⇒ <code>Promise</code>
         * [.getDuration()](#Player+getDuration) ⇒ <code>Number</code>
+        * [.getCurrentState()](#Player+getCurrentState) ⇒ <code>String</code>
     * _static_
         * [.EventTypes](#Player.EventTypes) ⇒ <code>Object</code>
 
@@ -492,6 +493,19 @@ Get duration of audio source
 **Example**
 ```js
 player.getDuration()
+```
+<a name="Player+getCurrentState"></a>
+
+### player.getCurrentState() ⇒ <code>String</code>
+Get current state of player
+
+**Kind**: instance method of [<code>Player</code>](#Player)
+**Returns**: <code>String</code> - - current state
+**Example**
+```js
+const currentState = player.getCurrentState()
+
+console.log(currentState) // 'playing'
 ```
 <a name="Player.EventTypes"></a>
 
@@ -572,6 +586,7 @@ const player = new Player()
         * [.getCurrentTime()](#Player+getCurrentTime) ⇒ <code>Number</code>
         * [.seekTo(seconds)](#Player+seekTo) ⇒ <code>Promise</code>
         * [.getDuration()](#Player+getDuration) ⇒ <code>Number</code>
+        * [.getCurrentState()](#Player+getCurrentState) ⇒ <code>String</code>
     * _static_
         * [.EventTypes](#Player.EventTypes) ⇒ <code>Object</code>
 
@@ -998,6 +1013,19 @@ Get duration of audio source
 **Example**
 ```js
 player.getDuration()
+```
+<a name="Player+getCurrentState"></a>
+
+### player.getCurrentState() ⇒ <code>String</code>
+Get current state of player
+
+**Kind**: instance method of [<code>Player</code>](#Player)
+**Returns**: <code>String</code> - - current state
+**Example**
+```js
+const currentState = player.getCurrentState()
+
+console.log(currentState) // 'PLAYING'
 ```
 <a name="Player.EventTypes"></a>
 

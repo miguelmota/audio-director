@@ -43,7 +43,7 @@ class Player {
   /**
    * @desc Create a Player
    */
-  constructor() {
+  constructor () {
     const ee = new EventEmitter2({
       wildcard: true
     })
@@ -68,13 +68,14 @@ class Player {
    */
     this.on = ee.on.bind(ee)
 
-    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+    window.AudioContext = window.AudioContext || window.webkitAudioContext
 
     this._queue = []
     this._currentQueueIndex = 0
     this._currentSource = null
     this._currentBuffer = null
-    this._context = new AudioContext()
+    this._currentSourceStartTime = 0
+    this._context = new window.AudioContext()
     this._playbackRate = 1
 
     this._playbackRateScale = scaleLinear()
@@ -99,22 +100,22 @@ class Player {
     this.isPlaying = false
 
     this.isReady = true
-    this._log('Player ready');
-    this.emit(PlayerEventTypes.READY);
+    this._log('Player ready')
+    this.emit(PlayerEventTypes.READY)
   }
 
-  _log(type, message) {
+  _log (type, message) {
     if (type &amp;&amp; !message) {
-      message = type;
-      type = 'log';
+      message = type
+      type = 'log'
     }
 
     setTimeout(() => {
-      this.emit(PlayerEventTypes.LOG, message);
-    }, 0);
+      this.emit(PlayerEventTypes.LOG, message)
+    }, 0)
 
     if (this._debug) {
-      console[type](message);
+      console[type](message)
     }
   }
 
@@ -125,7 +126,7 @@ class Player {
    * @example
    * const url = player.getCurrentUrl()
    */
-  getCurrentUrl() {
+  getCurrentUrl () {
     const source = this._queue[this._currentQueueIndex]
 
     if (typeof source === 'string') {
@@ -142,19 +143,19 @@ class Player {
    * @example
    * player.emptyQueue()
    */
-  emptyQueue() {
+  emptyQueue () {
     return new Promise((resolve, reject) => {
-      this._queue = [];
+      this._queue = []
       this._currentQueueIndex = 0
-      this._audio = null;
-      this._currentBuffer = null;
-      this._currentSource = null;
+      this._audio = null
+      this._currentBuffer = null
+      this._currentSource = null
       this.stop()
 
-      this._log('Empty queue');
-      this.emit(PlayerEventTypes.EMPTY_QUEUE);
-      resolve();
-    });
+      this._log('Empty queue')
+      this.emit(PlayerEventTypes.EMPTY_QUEUE)
+      resolve()
+    })
   }
 
   /**
@@ -173,43 +174,43 @@ class Player {
    * @example
    * player.enqueue(blob)
    */
-  enqueue(source) {
+  enqueue (source) {
     return new Promise((resolve, reject) => {
       if (Array.isArray(source)) {
         return source.forEach(x => this.enqueue(x))
       }
 
       if (!source) {
-        const error = new Error('argument cannot be empty.');
-        this._log(error);
-        return reject(error);
+        const error = new Error('argument cannot be empty.')
+        this._log(error)
+        return reject(error)
       }
 
-      const stringType = ({}).toString.call(source).replace(/\[.*\s(\w+)\]/, '$1');
+      const stringType = ({}).toString.call(source).replace(/\[.*\s(\w+)\]/, '$1')
 
       const proceed = (audioBuffer) => {
-        this._queue.push(audioBuffer);
-        this._log('Enqueue audio');
-        this.emit(PlayerEventTypes.ENQUEUE);
-        return resolve(audioBuffer);
-      };
+        this._queue.push(audioBuffer)
+        this._log('Enqueue audio')
+        this.emit(PlayerEventTypes.ENQUEUE)
+        return resolve(audioBuffer)
+      }
 
       if (stringType === 'DataView' || stringType === 'Uint8Array') {
         return arrayBufferToAudioBuffer(source.buffer, this._context)
-        .then(proceed);
+        .then(proceed)
       } else if (stringType === 'AudioBuffer') {
-        return proceed(source);
+        return proceed(source)
       } else if (stringType === 'ArrayBuffer') {
         return arrayBufferToAudioBuffer(source, this._context)
-        .then(proceed);
+        .then(proceed)
       } else if (stringType === 'String') {
-        return proceed(source);
+        return proceed(source)
       } else {
-        const error = new Error('Invalid type.');
-        this.emit('error', error);
-        return reject(error);
+        const error = new Error('Invalid type.')
+        this.emit('error', error)
+        return reject(error)
       }
-    });
+    })
   }
 
   /**
@@ -219,22 +220,22 @@ class Player {
    * @example
    * player.deque()
    */
-  deque() {
+  deque () {
     return new Promise((resolve, reject) => {
       if (this.random) {
-        this._currentQueueIndex = randomInt(0, this._queue.length-1)
+        this._currentQueueIndex = randomInt(0, this._queue.length - 1)
       }
 
       const source = this._queue[this._currentQueueIndex]
 
       if (source) {
-        this._log('Deque audio');
-        this.emit(PlayerEventTypes.DEQUE);
-        return resolve(source);
+        this._log('Deque audio')
+        this.emit(PlayerEventTypes.DEQUE)
+        return resolve(source)
       }
 
-      return reject(new Error('no source to play'));
-    });
+      return reject(new Error('no source to play'))
+    })
   }
 
   /**
@@ -244,39 +245,39 @@ class Player {
    * @example
    * player.play()
    */
-  play() {
+  play () {
     return new Promise((resolve, reject) => {
       this.isPlaying = true
 
       // if paused then resume
       if (this._context.state === 'suspended') {
-        this._context.resume();
+        this._context.resume()
 
-        this._log('Play audio');
-        this.emit(PlayerEventTypes.PLAY);
-        resolve();
+        this._log('Play audio')
+        this.emit(PlayerEventTypes.PLAY)
+        resolve()
 
       // if paused then resume
       } else if (this._audio &amp;&amp; this._audio.paused) {
-        this._log('Play audio');
-        this.emit(PlayerEventTypes.PLAY);
-        this._audio.play();
-        resolve();
+        this._log('Play audio')
+        this.emit(PlayerEventTypes.PLAY)
+        this._audio.play()
+        resolve()
 
       // if paused then resume
       } else {
         return this.deque()
         .then(audioBuffer => {
-          this._log('Play audio');
-          this.emit(PlayerEventTypes.PLAY);
+          this._log('Play audio')
+          this.emit(PlayerEventTypes.PLAY)
           if (typeof audioBuffer === 'string') {
-            return this.playUrl(audioBuffer);
+            return this.playUrl(audioBuffer)
           }
-          return this.playAudioBuffer(audioBuffer);
+          return this.playAudioBuffer(audioBuffer)
         })
-        .then(resolve);
+        .then(resolve)
       }
-    });
+    })
   }
 
   /**
@@ -286,12 +287,12 @@ class Player {
    * @example
    * player.playQueue()
    */
-  playQueue() {
+  playQueue () {
     return this.play().then(() => {
       if (this._queue.length) {
-        return this.playQueue();
+        return this.playQueue()
       }
-    });
+    })
   }
 
   /**
@@ -301,24 +302,25 @@ class Player {
    * @example
    * player.stop()
    */
-  stop() {
+  stop () {
     return new Promise((resolve, reject) => {
       this.isPlaying = false
 
       if (this._currentSource) {
-        this._currentSource.onended = function() {};
-        this._currentSource.stop();
+        this._currentSource.onended = function () {}
+        this._currentSource.stop()
+        this._currentSourceStartTime = 0
       }
 
       if (this._audio) {
-        this._audio.onended = function() {};
-        this._audio.currentTime = 0;
-        this._audio.pause();
+        this._audio.onended = function () {}
+        this._audio.currentTime = 0
+        this._audio.pause()
       }
 
-      this._log('Stop audio');
-      this.emit(PlayerEventTypes.STOP);
-    });
+      this._log('Stop audio')
+      this.emit(PlayerEventTypes.STOP)
+    })
   }
 
   /**
@@ -328,21 +330,21 @@ class Player {
    * @example
    * player.pause()
    */
-  pause() {
+  pause () {
     return new Promise((resolve, reject) => {
       this.isPlaying = false
 
       if (this._currentSource &amp;&amp; this._context.state === 'running') {
-        this._context.suspend();
+        this._context.suspend()
       }
 
       if (this._audio) {
-        this._audio.pause();
+        this._audio.pause()
       }
 
-      this._log('Pause audio');
-      this.emit(PlayerEventTypes.PAUSE);
-    });
+      this._log('Pause audio')
+      this.emit(PlayerEventTypes.PAUSE)
+    })
   }
 
   /**
@@ -352,31 +354,31 @@ class Player {
    * @example
    * player.replay()
    */
-  replay() {
+  replay () {
     return new Promise((resolve, reject) => {
       if (this._currentBuffer) {
-        this._log('Replay audio');
-        this.emit(PlayerEventTypes.REPLAY);
+        this._log('Replay audio')
+        this.emit(PlayerEventTypes.REPLAY)
 
         if (this._context.state === 'suspended') {
-          this._context.resume();
+          this._context.resume()
         }
 
         if (this._currentSource) {
-          this._currentSource.stop();
-          this._currentSource.onended = function() {};
+          this._currentSource.stop()
+          this._currentSource.onended = function () {}
         }
-        return this.playAudioBuffer(this._currentBuffer);
+        return this.playAudioBuffer(this._currentBuffer)
       } else if (this._audio) {
-        this._log('Replay audio');
-        this.emit(PlayerEventTypes.REPLAY);
-        return this.playUrl(this._audio.src);
+        this._log('Replay audio')
+        this.emit(PlayerEventTypes.REPLAY)
+        return this.playUrl(this._audio.src)
       } else {
-        const error = new Error('No audio source loaded.');
+        const error = new Error('No audio source loaded.')
         this.emit('error', error)
-        reject();
+        reject(error)
       }
-    });
+    })
   }
 
   /**
@@ -391,37 +393,37 @@ class Player {
    *
    * player.playBlob(blob)
    */
-  playBlob(blob) {
+  playBlob (blob) {
     return new Promise((resolve, reject) => {
       if (!blob) {
-        reject();
+        reject(new Error('Must be Blob object'))
       }
 
-      const objectUrl = URL.createObjectURL(blob);
-      const audio = new Audio();
-      audio.src = objectUrl;
-      this._currentBuffer = null;
-      this._currentSource = null;
-      this._audio = audio;
+      const objectUrl = window.URL.createObjectURL(blob)
+      const audio = new window.Audio()
+      audio.src = objectUrl
+      this._currentBuffer = null
+      this._currentSource = null
+      this._audio = audio
       this._audio.playbackRate = this._playbackRate
 
       audio.onended = () => {
-        this._log('Audio ended');
-        this.emit(PlayerEventTypes.ENDED);
-        resolve();
-      };
+        this._log('Audio ended')
+        this.emit(PlayerEventTypes.ENDED)
+        resolve()
+      }
 
       audio.onerror = (error) => {
-        this.emit('error', error);
-        reject(error);
-      };
+        this.emit('error', error)
+        reject(error)
+      }
 
       audio.onload = (event) => {
-        URL.revokeObjectUrl(objectUrl);
-      };
+        window.URL.revokeObjectUrl(objectUrl)
+      }
 
-      audio.play();
-    });
+      audio.play()
+    })
   }
 
   /**
@@ -432,31 +434,32 @@ class Player {
    * @example
    * player.playAudioBuffer(audioBuffer)
    */
-  playAudioBuffer(buffer) {
+  playAudioBuffer (buffer) {
     return new Promise((resolve, reject) => {
       if (!buffer) {
-        reject();
+        reject(new Error('Must be an AudioBuffer'))
       }
 
-      const source = this._context.createBufferSource();
-      source.buffer = buffer;
-      source.connect(this._context.destination);
-      source.start(0);
-      this._currentBuffer = buffer;
-      this._currentSource = source;
-      this._audio = null;
+      const source = this._context.createBufferSource()
+      source.buffer = buffer
+      source.connect(this._context.destination)
+      source.start(0)
+      this._currentBuffer = buffer
+      this._currentSource = source
+      this._currentSourceStartTime = this._context.currentTime
+      this._audio = null
 
       source.onended = (event) => {
-        this._log('Audio ended');
-        this.emit(PlayerEventTypes.ENDED);
-        resolve();
-      };
+        this._log('Audio ended')
+        this.emit(PlayerEventTypes.ENDED)
+        resolve()
+      }
 
       source.onerror = (error) => {
-        this.emit('error', error);
-        reject(error);
-      };
-    });
+        this.emit('error', error)
+        reject(error)
+      }
+    })
   }
 
   /**
@@ -466,7 +469,7 @@ class Player {
    * @example
    * player.getCurrentAudioBuffer()
    */
-  getCurrentAudioBuffer() {
+  getCurrentAudioBuffer () {
     return Promise.resolve(this._currentBuffer)
   }
 
@@ -480,37 +483,37 @@ class Player {
    *
    * player.playUrl(url)
    */
-  playUrl(url) {
+  playUrl (url) {
     return new Promise((resolve, reject) => {
       const usingAudioTag = false
 
       if (usingAudioTag) {
-        const audio = new Audio();
-        audio.src = url;
-        this._currentBuffer = null;
-        this._currentSource = null;
-        this._audio = audio;
+        const audio = new window.Audio()
+        audio.src = url
+        this._currentBuffer = null
+        this._currentSource = null
+        this._audio = audio
         this._audio.playbackRate = this._playbackRate
 
         audio.onended = (event) => {
-          this._log('Audio ended');
-          this.emit(PlayerEventTypes.ENDED);
-          resolve();
-        };
+          this._log('Audio ended')
+          this.emit(PlayerEventTypes.ENDED)
+          resolve()
+        }
 
         audio.onerror = (error) => {
-          this.emit('error', error);
-          reject(error);
-        };
+          this.emit('error', error)
+          reject(error)
+        }
 
-        audio.play();
+        audio.play()
       } else {
         return this.getAudioDataFromUrl(url)
         .then(buffer => {
           return this.playAudioBuffer(buffer)
         })
       }
-    });
+    })
   }
 
   /**
@@ -526,9 +529,9 @@ class Player {
    *
    * })
    */
-  getAudioDataFromUrl(url) {
+  getAudioDataFromUrl (url) {
     return new Promise((resolve, reject) => {
-      const request = new XMLHttpRequest()
+      const request = new window.XMLHttpRequest()
       request.open('GET', url, true)
       request.responseType = 'arraybuffer'
 
@@ -554,9 +557,9 @@ class Player {
    * @example
    * player.next()
    */
-  next() {
+  next () {
     return new Promise((resolve, reject) => {
-      const isLast = (this._currentQueueIndex === this._queue.length-1)
+      const isLast = (this._currentQueueIndex === this._queue.length - 1)
 
       if (isLast) {
         this._currentQueueIndex = -1
@@ -567,8 +570,8 @@ class Player {
       if (source) {
         this._currentQueueIndex++
 
-        this._log('Next audio');
-        this.emit(PlayerEventTypes.NEXT);
+        this._log('Next audio')
+        this.emit(PlayerEventTypes.NEXT)
 
         const continuePlaying = this.isPlaying
 
@@ -581,8 +584,8 @@ class Player {
         }
       }
 
-      return reject(new Error('no source to play'));
-    });
+      return reject(new Error('no source to play'))
+    })
   }
 
   /**
@@ -592,14 +595,14 @@ class Player {
    * @example
    * player.previous()
    */
-  previous() {
+  previous () {
     return new Promise((resolve, reject) => {
       const source = this._queue[this._currentQueueIndex - 1]
 
       if (source) {
         this._currentQueueIndex--
-        this._log('Previous audio');
-        this.emit(PlayerEventTypes.PREVIOUS);
+        this._log('Previous audio')
+        this.emit(PlayerEventTypes.PREVIOUS)
 
         const continuePlaying = this.isPlaying
 
@@ -614,7 +617,7 @@ class Player {
       }
 
       return reject(new Error('no source to play'))
-    });
+    })
   }
 
   /**
@@ -625,7 +628,7 @@ class Player {
    * @example
    * player.setRandom(true)
    */
-  setRandom(enabled) {
+  setRandom (enabled) {
     this._log(`Set random: ${enabled}`)
     this.emit(PlayerEventTypes.RANDOM)
     this.random = enabled
@@ -639,7 +642,7 @@ class Player {
    * @example
    * player.setRepeat(true)
    */
-  setRepeat(enabled) {
+  setRepeat (enabled) {
     this._log(`Set repeat: ${enabled}`)
     this.emit(PlayerEventTypes.REPEAT)
     this.repeat = enabled
@@ -652,8 +655,8 @@ class Player {
    * @example
    * const hasNext = player.hasNext()
    */
-  hasNext() {
-    //const hasNext = this._queue.length > 1 &amp;&amp; this._currentQueueIndex &lt; this._queue.length-1
+  hasNext () {
+    // const hasNext = this._queue.length > 1 &amp;&amp; this._currentQueueIndex &lt; this._queue.length-1
     const hasNext = this._queue.length > 1
     return hasNext
   }
@@ -665,7 +668,7 @@ class Player {
    * @example
    * const hasPrevious = player.hasPrevious()
    */
-  hasPrevious() {
+  hasPrevious () {
     const hasPrevious = this._queue.length > 1 &amp;&amp; this._currentQueueIndex > 0
     return hasPrevious
   }
@@ -678,7 +681,7 @@ class Player {
    * @example
    * player.setPlaybackRate(2)
    */
-  setPlaybackRate(rate) {
+  setPlaybackRate (rate) {
     return new Promise((resolve, reject) => {
       this._playbackRate = this._playbackRateScale(rate)
 
@@ -690,8 +693,8 @@ class Player {
         this._currentSource.playbackRate.value = this._playbackRate
       }
 
-      this._log(`Set playback rate: ${this._playbackRate}`);
-      this.emit(PlayerEventTypes.PLAYBACK_RATE, this._playbackRate);
+      this._log(`Set playback rate: ${this._playbackRate}`)
+      this.emit(PlayerEventTypes.PLAYBACK_RATE, this._playbackRate)
 
       resolve(this._playbackRate)
     })
@@ -704,7 +707,7 @@ class Player {
    * @example
    * const playbackRate = player.getPlaybackRate()
    */
-  getPlaybackRate() {
+  getPlaybackRate () {
     return this._playbackRate
   }
 
@@ -716,16 +719,16 @@ class Player {
    * @example
    * player.setVolume(0.9)
    */
-  setVolume(volume) {
+  setVolume (volume) {
     return new Promise((resolve, reject) => {
       this._volume = this._volumeScale(volume)
 
       if (this._audio) {
-        this._audio.volume = this._volume;
+        this._audio.volume = this._volume
       }
 
-      this._log(`Set volume: ${this._volume}`);
-      this.emit(PlayerEventTypes.VOLUME, this._volume);
+      this._log(`Set volume: ${this._volume}`)
+      this.emit(PlayerEventTypes.VOLUME, this._volume)
 
       resolve(this._volume)
     })
@@ -738,7 +741,7 @@ class Player {
    * @example
    * player.getVolume()
    */
-  getVolume() {
+  getVolume () {
     return this._volume
   }
 
@@ -750,7 +753,7 @@ class Player {
    * @example
    * player.setMaxVolume(0.8)
    */
-  setMaxVolume(maxVolume) {
+  setMaxVolume (maxVolume) {
     return new Promise((resolve, reject) => {
       this._maxVolume = this._maxVolumeScale(maxVolume)
       this._volumeScale = scaleLinear()
@@ -760,8 +763,8 @@ class Player {
 
       this.setVolume(this._volume)
 
-      this._log(`Set max volume: ${this._volume}`);
-      this.emit(PlayerEventTypes.MAX_VOLUME, this._maxVolume);
+      this._log(`Set max volume: ${this._volume}`)
+      this.emit(PlayerEventTypes.MAX_VOLUME, this._maxVolume)
       resolve()
     })
   }
@@ -773,7 +776,7 @@ class Player {
    * @example
    * player.getMaxVolume()
    */
-  getMaxVolume() {
+  getMaxVolume () {
     return this._maxVolume
   }
 
@@ -786,7 +789,7 @@ class Player {
    * player.setMuted(true)
    */
   // TODO
-  setMuted(enabled) {
+  setMuted (enabled) {
     this.muted = !!enabled
 
     return Promise.resolve(this.muted)
@@ -799,9 +802,9 @@ class Player {
    * @example
    * player.getCurrentTime()
    */
-  getCurrentTime() {
-    if (this._context) {
-      return this._context.currentTime
+  getCurrentTime () {
+    if (this._context &amp;&amp; this._currentSource) {
+      return this._context.currentTime - this._currentSourceStartTime
     }
 
     if (this._audio) {
@@ -821,9 +824,18 @@ class Player {
    *
    * player.seekTo(seconds)
    */
-  seekTo(seconds) {
-    if (this._context) {
-      this._context.currentTime = seconds
+  seekTo (seconds) {
+    if (this._currentBuffer) {
+      if (this._currentSource) {
+        this._currentSource.stop()
+      }
+
+      const source = this._context.createBufferSource()
+      source.buffer = this._currentBuffer
+      source.connect(this._context.destination)
+      source.start(0, seconds)
+      this._currentSource = source
+      this._currentSourceStartTime = this._context.currentTime - seconds
     }
 
     if (this._audio) {
@@ -840,8 +852,26 @@ class Player {
    * @example
    * player.getDuration()
    */
-  getDuration() {
+  getDuration () {
     return 0
+  }
+
+  /**
+   * getState
+   * @desc Get current state of player
+   * @return {String} - current state
+   * @example
+   * const currentState = player.getCurrentState()
+   *
+   * console.log(currentState) // 'playing'
+   *
+   */
+  getCurrentState () {
+    if (this.isPlaying) {
+      return 'playing'
+    } else {
+      return 'paused'
+    }
   }
 
   /**
@@ -875,7 +905,7 @@ class Player {
       STATE_CHANGE: 'stateChange'
    * }
    */
-  static get EventTypes() {
+  static get EventTypes () {
     return PlayerEventTypes
   }
 }
@@ -897,7 +927,7 @@ module.exports = Player
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Sun Jul 16 2017 17:07:52 GMT-0700 (PDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.3</a> on Sun Aug 06 2017 14:14:17 GMT-0700 (PDT)
 </footer>
 
 <script> prettyPrint(); </script>
