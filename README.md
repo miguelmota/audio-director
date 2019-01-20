@@ -1,8 +1,18 @@
+<h3 align="center">
+  <br />
+  <img src="https://user-images.githubusercontent.com/168240/51434313-bf8a1f00-1c12-11e9-95cb-a1ac85418e67.png" alt="logo" width="700" />
+  <br />
+  <br />
+  <br />
+</h3>
+
 # audio-director
 
 > Manage browser audio sources and playback
 
-# Install
+[![License](http://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/miguelmota/audio-director/master/LICENSE) [![Build Status](https://travis-ci.org/miguelmota/audio-director.svg?branch=master)](https://travis-ci.org/miguelmota/audio-director) [![dependencies Status](https://david-dm.org/miguelmota/audio-director/status.svg)](https://david-dm.org/miguelmota/audio-director) [![NPM version](https://badge.fury.io/js/audio-director.svg)](http://badge.fury.io/js/audio-director)
+
+## Install
 
 ```bash
 npm install audio-director
@@ -1093,14 +1103,14 @@ player.enqueue(url)
 
 [Full documentation](https://lab.miguelmota.com/audio-director/docs/YoutubePlayer.html)
 
-# Example
+## Example
 
 [Live basic example](https://lab.miguelmota.com/audio-director/example)
 
-# Source
+## Source
 
 [https://github.com/miguelmota/audio-director](https://github.com/miguelmota/audio-director)
 
-# License
+## License
 
-MIT
+[MIT](LICENSE)
